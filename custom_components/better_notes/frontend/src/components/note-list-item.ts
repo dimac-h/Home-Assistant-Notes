@@ -2,8 +2,77 @@ import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { mdiPin } from '@mdi/js';
-import { safeColor, getNoteTextColor, formatRelativeDate, notePreviewHtml } from '../colors';
+import { safeColor, getNoteTextColor } from '../colors';
+import { formatRelativeDate } from '../format';
 import type { Note } from '../api';
+
+const PREVIEW_ALLOWED_TAGS = new Set([
+  'P', 'BR', 'UL', 'OL', 'LI', 'LABEL', 'SPAN', 'DIV',
+  'STRONG', 'B', 'EM', 'I', 'S', 'U', 'MARK', 'INPUT',
+]);
+
+function cleanPreviewNode(node: Node): void {
+  // Walk with an explicit next-sibling pointer captured before any mutation,
+  // rather than a childNodes snapshot — a snapshot goes stale as soon as one
+  // sibling is unwrapped/removed, and a later removeChild on another
+  // already-detached sibling throws NotFoundError.
+  let child = node.firstChild;
+  while (child) {
+    const next: ChildNode | null = child.nextSibling;
+    if (child.nodeType === Node.TEXT_NODE) {
+      child = next;
+      continue;
+    }
+    if (child.nodeType !== Node.ELEMENT_NODE) {
+      node.removeChild(child);
+      child = next;
+      continue;
+    }
+    const el = child as HTMLElement;
+    if (!PREVIEW_ALLOWED_TAGS.has(el.tagName)) {
+      // Unwrap disallowed elements (e.g. <a>) instead of dropping their
+      // text — script/style are the only ones dropped outright.
+      if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE') {
+        el.remove();
+        child = next;
+        continue;
+      }
+      const firstMoved = el.firstChild;
+      while (el.firstChild) node.insertBefore(el.firstChild, el);
+      node.removeChild(el);
+      // Re-visit the just-unwrapped content (it may itself contain disallowed
+      // tags) before continuing on to `next`.
+      child = firstMoved ?? next;
+      continue;
+    }
+    Array.from(el.attributes).forEach((attr) => {
+      const keep = (el.tagName === 'INPUT' && attr.name === 'checked')
+        || (el.tagName === 'UL' && attr.name === 'data-type')
+        || (el.tagName === 'LI' && attr.name === 'data-checked');
+      if (!keep) el.removeAttribute(attr.name);
+    });
+    if (el.tagName === 'INPUT') {
+      el.setAttribute('type', 'checkbox');
+      el.setAttribute('disabled', '');
+    }
+    cleanPreviewNode(el);
+    child = next;
+  }
+}
+
+// Renders a trusted-but-structural preview of note content: real
+// <ul>/<li>/checkbox markup (so the list preview shows bullets/checkboxes
+// like the editor does) instead of flattened plain text, with everything
+// but a small structural tag allowlist stripped to avoid injecting
+// arbitrary markup/scripts from note content into the shadow DOM.
+function notePreviewHtml(html: string): string {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  cleanPreviewNode(doc.body);
+  Array.from(doc.body.querySelectorAll('p')).forEach((p) => {
+    if (!p.textContent?.trim() && !p.querySelector('input')) p.remove();
+  });
+  return doc.body.innerHTML;
+}
 
 @customElement('better-notes-list-item')
 export class BetterNotesListItem extends LitElement {
@@ -29,6 +98,8 @@ export class BetterNotesListItem extends LitElement {
     .preview p, .preview li { margin: 0; }
     .preview ul, .preview ol { margin: 0; padding-inline-start: 1.1em; }
     .preview ul[data-type='taskList'] { list-style: none; padding-inline-start: 0; }
+    .preview ul[data-type='taskList'] li > div,
+    .preview ul[data-type='taskList'] li > div > p { display: inline; }
     .preview input[type='checkbox'] { vertical-align: middle; margin-inline-end: 4px; }
     .date { font-size: 12px; line-height: 1.3; color: var(--note-text-muted); }
     ha-svg-icon { --mdc-icon-size: 14px; color: var(--note-text-muted); flex-shrink: 0; }

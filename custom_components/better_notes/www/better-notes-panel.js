@@ -1,15 +1,15 @@
-import { A as T, E as P, i as v, n as l, a as _, h as N, j as S, c as O, m as A, b as a, f as D, t as g, d as z, r as h, N as I, k as H, l as B, s as j, g as M, o as R, D as G, u as q, p as U } from "./colors-MRcmDynT.js";
-const V = (t, e, i) => (i.configurable = !0, i.enumerable = !0, Reflect.decorate && typeof e != "object" && Object.defineProperty(t, e, i), i);
-function $(t, e) {
+import { A, E as H, i as f, n as l, a as g, h as M, c as B, m as j, b as a, f as R, t as k, d as U, r as p, N as q, j as G, k as V, s as F, g as W, l as K, D as X, u as Y, o as J } from "./format-1mjcoacS.js";
+const Q = (t, e, i) => (i.configurable = !0, i.enumerable = !0, Reflect.decorate && typeof e != "object" && Object.defineProperty(t, e, i), i);
+function T(t, e) {
   return (i, s, o) => {
     const n = (r) => r.renderRoot?.querySelector(t) ?? null;
-    return V(i, s, { get() {
+    return Q(i, s, { get() {
       return n(this);
     } });
   };
 }
-const F = { CHILD: 2 }, K = (t) => (...e) => ({ _$litDirective$: t, values: e });
-class J {
+const Z = { CHILD: 2 }, tt = (t) => (...e) => ({ _$litDirective$: t, values: e });
+class et {
   constructor(e) {
   }
   get _$AU() {
@@ -25,13 +25,13 @@ class J {
     return this.render(...i);
   }
 }
-class y extends J {
+class E extends et {
   constructor(e) {
-    if (super(e), this.it = T, e.type !== F.CHILD) throw Error(this.constructor.directiveName + "() can only be used in child bindings");
+    if (super(e), this.it = A, e.type !== Z.CHILD) throw Error(this.constructor.directiveName + "() can only be used in child bindings");
   }
   render(e) {
-    if (e === T || e == null) return this._t = void 0, this.it = e;
-    if (e === P) return e;
+    if (e === A || e == null) return this._t = void 0, this.it = e;
+    if (e === H) return e;
     if (typeof e != "string") throw Error(this.constructor.directiveName + "() called with a non-string value");
     if (e === this.it) return this._t;
     this.it = e;
@@ -39,14 +39,66 @@ class y extends J {
     return i.raw = i, this._t = { _$litType$: this.constructor.resultType, strings: i, values: [] };
   }
 }
-y.directiveName = "unsafeHTML", y.resultType = 1;
-const Q = K(y);
-var W = Object.defineProperty, X = Object.getOwnPropertyDescriptor, C = (t, e, i, s) => {
-  for (var o = s > 1 ? void 0 : s ? X(e, i) : e, n = t.length - 1, r; n >= 0; n--)
+E.directiveName = "unsafeHTML", E.resultType = 1;
+const it = tt(E);
+var ot = Object.defineProperty, st = Object.getOwnPropertyDescriptor, N = (t, e, i, s) => {
+  for (var o = s > 1 ? void 0 : s ? st(e, i) : e, n = t.length - 1, r; n >= 0; n--)
     (r = t[n]) && (o = (s ? r(e, i, o) : r(o)) || o);
-  return s && o && W(e, i, o), o;
+  return s && o && ot(e, i, o), o;
 };
-let w = class extends _ {
+const nt = /* @__PURE__ */ new Set([
+  "P",
+  "BR",
+  "UL",
+  "OL",
+  "LI",
+  "LABEL",
+  "SPAN",
+  "DIV",
+  "STRONG",
+  "B",
+  "EM",
+  "I",
+  "S",
+  "U",
+  "MARK",
+  "INPUT"
+]);
+function D(t) {
+  let e = t.firstChild;
+  for (; e; ) {
+    const i = e.nextSibling;
+    if (e.nodeType === Node.TEXT_NODE) {
+      e = i;
+      continue;
+    }
+    if (e.nodeType !== Node.ELEMENT_NODE) {
+      t.removeChild(e), e = i;
+      continue;
+    }
+    const s = e;
+    if (!nt.has(s.tagName)) {
+      if (s.tagName === "SCRIPT" || s.tagName === "STYLE") {
+        s.remove(), e = i;
+        continue;
+      }
+      const o = s.firstChild;
+      for (; s.firstChild; ) t.insertBefore(s.firstChild, s);
+      t.removeChild(s), e = o ?? i;
+      continue;
+    }
+    Array.from(s.attributes).forEach((o) => {
+      s.tagName === "INPUT" && o.name === "checked" || s.tagName === "UL" && o.name === "data-type" || s.tagName === "LI" && o.name === "data-checked" || s.removeAttribute(o.name);
+    }), s.tagName === "INPUT" && (s.setAttribute("type", "checkbox"), s.setAttribute("disabled", "")), D(s), e = i;
+  }
+}
+function rt(t) {
+  const e = new DOMParser().parseFromString(t, "text/html");
+  return D(e.body), Array.from(e.body.querySelectorAll("p")).forEach((i) => {
+    !i.textContent?.trim() && !i.querySelector("input") && i.remove();
+  }), e.body.innerHTML;
+}
+let x = class extends g {
   constructor() {
     super(...arguments), this.active = !1, this._select = () => {
       this.dispatchEvent(new CustomEvent("note-select", {
@@ -63,23 +115,23 @@ let w = class extends _ {
     super.disconnectedCallback(), this.removeEventListener("click", this._select);
   }
   render() {
-    const t = N(this.note.content || ""), { title: e, muted: i } = S(this.note.color);
+    const t = rt(this.note.content || ""), { title: e, muted: i } = M(this.note.color);
     return a`
       <div
         class="card"
-        style="background:${O(this.note.color)}; --note-text:${e}; --note-text-muted:${i}"
+        style="background:${B(this.note.color)}; --note-text:${e}; --note-text-muted:${i}"
       >
         <div class="header">
           <div class="title">${this.note.title || "Untitled"}</div>
-          ${this.note.pinned ? a`<ha-svg-icon .path=${A}></ha-svg-icon>` : ""}
+          ${this.note.pinned ? a`<ha-svg-icon .path=${j}></ha-svg-icon>` : ""}
         </div>
-        <div class="preview">${Q(t)}</div>
-        <div class="date">${D(this.note.modified)}</div>
+        <div class="preview">${it(t)}</div>
+        <div class="date">${R(this.note.modified)}</div>
       </div>
     `;
   }
 };
-w.styles = v`
+x.styles = f`
     :host { display: block; cursor: pointer; margin-block-end: var(--ha-space-2); }
     .card {
       border-radius: 6px;
@@ -101,25 +153,27 @@ w.styles = v`
     .preview p, .preview li { margin: 0; }
     .preview ul, .preview ol { margin: 0; padding-inline-start: 1.1em; }
     .preview ul[data-type='taskList'] { list-style: none; padding-inline-start: 0; }
+    .preview ul[data-type='taskList'] li > div,
+    .preview ul[data-type='taskList'] li > div > p { display: inline; }
     .preview input[type='checkbox'] { vertical-align: middle; margin-inline-end: 4px; }
     .date { font-size: 12px; line-height: 1.3; color: var(--note-text-muted); }
     ha-svg-icon { --mdc-icon-size: 14px; color: var(--note-text-muted); flex-shrink: 0; }
   `;
-C([
+N([
   l({ attribute: !1 })
-], w.prototype, "note", 2);
-C([
+], x.prototype, "note", 2);
+N([
   l({ type: Boolean, reflect: !0 })
-], w.prototype, "active", 2);
-w = C([
-  g("better-notes-list-item")
-], w);
-var Y = Object.defineProperty, Z = Object.getOwnPropertyDescriptor, k = (t, e, i, s) => {
-  for (var o = s > 1 ? void 0 : s ? Z(e, i) : e, n = t.length - 1, r; n >= 0; n--)
+], x.prototype, "active", 2);
+x = N([
+  k("better-notes-list-item")
+], x);
+var at = Object.defineProperty, lt = Object.getOwnPropertyDescriptor, L = (t, e, i, s) => {
+  for (var o = s > 1 ? void 0 : s ? lt(e, i) : e, n = t.length - 1, r; n >= 0; n--)
     (r = t[n]) && (o = (s ? r(e, i, o) : r(o)) || o);
-  return s && o && Y(e, i, o), o;
+  return s && o && at(e, i, o), o;
 };
-let b = class extends _ {
+let _ = class extends g {
   constructor() {
     super(...arguments), this.notes = [], this.selectedNoteId = null, this.searchTerm = "";
   }
@@ -133,7 +187,7 @@ let b = class extends _ {
   get _filtered() {
     const t = this.searchTerm.toLowerCase();
     return t ? this.notes.filter(
-      (e) => (e.title || "").toLowerCase().includes(t) || z(e.content || "").toLowerCase().includes(t)
+      (e) => (e.title || "").toLowerCase().includes(t) || U(e.content || "").toLowerCase().includes(t)
     ) : this.notes;
   }
   render() {
@@ -157,7 +211,7 @@ let b = class extends _ {
     `;
   }
 };
-b.styles = v`
+_.styles = f`
     :host { display: flex; flex-direction: column; height: 100%; background: var(--card-background-color); }
     .header {
       background: var(--card-background-color);
@@ -193,24 +247,24 @@ b.styles = v`
     .items { flex: 1; overflow-y: auto; padding: var(--ha-space-3) var(--ha-space-4); }
     .empty { padding: 20px; text-align: center; color: var(--secondary-text-color); font-size: 14px; }
   `;
-k([
+L([
   l({ attribute: !1 })
-], b.prototype, "notes", 2);
-k([
+], _.prototype, "notes", 2);
+L([
   l({ type: String })
-], b.prototype, "selectedNoteId", 2);
-k([
+], _.prototype, "selectedNoteId", 2);
+L([
   l({ type: String })
-], b.prototype, "searchTerm", 2);
-b = k([
-  g("better-notes-list")
-], b);
-var tt = Object.defineProperty, et = Object.getOwnPropertyDescriptor, m = (t, e, i, s) => {
-  for (var o = s > 1 ? void 0 : s ? et(e, i) : e, n = t.length - 1, r; n >= 0; n--)
+], _.prototype, "searchTerm", 2);
+_ = L([
+  k("better-notes-list")
+], _);
+var ct = Object.defineProperty, dt = Object.getOwnPropertyDescriptor, w = (t, e, i, s) => {
+  for (var o = s > 1 ? void 0 : s ? dt(e, i) : e, n = t.length - 1, r; n >= 0; n--)
     (r = t[n]) && (o = (s ? r(e, i, o) : r(o)) || o);
-  return s && o && tt(e, i, o), o;
+  return s && o && ct(e, i, o), o;
 };
-let d = class extends _ {
+let h = class extends g {
   constructor() {
     super(...arguments), this.pinned = !1, this.color = "", this.linkHref = "", this._openGroup = null, this._linkOpen = !1;
   }
@@ -283,7 +337,7 @@ let d = class extends _ {
         <ha-button size="s" appearance="plain" variant="neutral" @click=${() => this._toggleGroup("color")} @mousedown=${(t) => t.preventDefault()}>Color<span class="caret"> ▾</span></ha-button>
         <div class="dropdown">
           <div class="swatches">
-            ${I.map((t) => a`
+            ${q.map((t) => a`
               <div class="dot ${this.color === t ? "active" : ""}" style="background:${t}"
                    @click=${() => this._selectColor(t)}></div>
             `)}
@@ -307,7 +361,7 @@ let d = class extends _ {
     `;
   }
 };
-d.styles = v`
+h.styles = f`
     :host {
       display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 8px 12px;
       background: var(--card-background-color); border: 1px solid var(--divider-color);
@@ -337,27 +391,27 @@ d.styles = v`
     .link-row { display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 0 2px; flex-basis: 100%; }
     .link-row ha-input { flex: 1; }
   `;
-m([
+w([
   l({ type: Boolean })
-], d.prototype, "pinned", 2);
-m([
+], h.prototype, "pinned", 2);
+w([
   l({ type: String })
-], d.prototype, "color", 2);
-m([
+], h.prototype, "color", 2);
+w([
   l({ type: String })
-], d.prototype, "linkHref", 2);
-m([
-  h()
-], d.prototype, "_openGroup", 2);
-m([
-  h()
-], d.prototype, "_linkOpen", 2);
-d = m([
-  g("better-notes-toolbar")
-], d);
-async function it() {
+], h.prototype, "linkHref", 2);
+w([
+  p()
+], h.prototype, "_openGroup", 2);
+w([
+  p()
+], h.prototype, "_linkOpen", 2);
+h = w([
+  k("better-notes-toolbar")
+], h);
+async function pt() {
   const [{ Editor: t }, { StarterKit: e }, { TaskList: i }, { TaskItem: s }, { Link: o }, { Highlight: n }, { ListItem: r }] = await Promise.all([
-    import("./index-pa5U7i3D.js").then((L) => L.O),
+    import("./index-pa5U7i3D.js").then((u) => u.O),
     import("./index-Yys9n5GD.js"),
     import("./index-B0TKEn8L.js"),
     import("./index-D6ncd5DV.js"),
@@ -383,12 +437,12 @@ async function it() {
     ]
   };
 }
-var ot = Object.defineProperty, st = Object.getOwnPropertyDescriptor, E = (t, e, i, s) => {
-  for (var o = s > 1 ? void 0 : s ? st(e, i) : e, n = t.length - 1, r; n >= 0; n--)
+var ht = Object.defineProperty, ut = Object.getOwnPropertyDescriptor, P = (t, e, i, s) => {
+  for (var o = s > 1 ? void 0 : s ? ut(e, i) : e, n = t.length - 1, r; n >= 0; n--)
     (r = t[n]) && (o = (s ? r(e, i, o) : r(o)) || o);
-  return s && o && ot(e, i, o), o;
+  return s && o && ht(e, i, o), o;
 };
-let x = class extends _ {
+let y = class extends g {
   constructor() {
     super(...arguments), this.content = "", this._editor = null, this._fallback = !1, this._lastEmitted = "";
   }
@@ -404,7 +458,7 @@ let x = class extends _ {
   async _init() {
     let t;
     try {
-      t = await it();
+      t = await pt();
     } catch (s) {
       console.warn("Home Assistant Notes: Tiptap failed to load, falling back to textarea", s), t = null;
     }
@@ -419,7 +473,31 @@ let x = class extends _ {
       content: this.content,
       autofocus: "end",
       onUpdate: () => this._emitChanged()
-    }), this._lastEmitted = this._editor.getHTML();
+    }), this._lastEmitted = this._editor.getHTML(), this._mount?.addEventListener("change", (s) => {
+      const o = s.target;
+      o instanceof HTMLInputElement && o.type === "checkbox" && o.closest('ul[data-type="taskList"]') && this._reorderTaskList(o);
+    });
+  }
+  // Keeps a checklist tidy after a check/uncheck: unchecked items on top,
+  // checked items below, each group sorted alphabetically. Only runs on
+  // checkbox toggle (not on every keystroke) so typing a new item doesn't
+  // jump around the list while the user is still writing it.
+  _reorderTaskList(t) {
+    const e = this._editor?.view, i = t.closest("li");
+    if (!e || !i) return;
+    const s = e.state.doc.resolve(e.posAtDOM(i, 0));
+    let o = s.depth;
+    for (; o > 0 && s.node(o).type.name !== "taskList"; ) o--;
+    if (s.node(o).type.name !== "taskList") return;
+    const n = s.node(o), r = [];
+    n.forEach((m) => r.push(m));
+    const u = [...r].sort((m, C) => {
+      const S = !!m.attrs.checked, z = !!C.attrs.checked;
+      return S !== z ? S ? 1 : -1 : (m.textContent || "").trim().localeCompare((C.textContent || "").trim());
+    });
+    if (u.every((m, C) => m === r[C])) return;
+    const $ = s.before(o) + 1, I = $ + n.content.size;
+    e.dispatch(e.state.tr.replaceWith($, I, u));
   }
   _emitChanged() {
     this._lastEmitted = this.getHTML(), this.dispatchEvent(new CustomEvent("content-changed", {
@@ -505,7 +583,7 @@ let x = class extends _ {
       ></textarea>` : a`<div id="mount" @keydown=${(t) => t.stopPropagation()}></div>`;
   }
 };
-x.styles = v`
+y.styles = f`
     :host { display: flex; flex-direction: column; min-height: 0; flex: 1; }
     .fallback {
       width: 100%; min-height: 300px; font-size: 15px; line-height: 1.6;
@@ -564,29 +642,48 @@ x.styles = v`
       padding-inline: 1em;
     }
   `;
-E([
+P([
   l({ attribute: !1 })
-], x.prototype, "content", 2);
-E([
-  $("#mount")
-], x.prototype, "_mount", 2);
-x = E([
-  g("better-notes-tiptap-editor")
-], x);
-var nt = Object.defineProperty, rt = Object.getOwnPropertyDescriptor, f = (t, e, i, s) => {
-  for (var o = s > 1 ? void 0 : s ? rt(e, i) : e, n = t.length - 1, r; n >= 0; n--)
+], y.prototype, "content", 2);
+P([
+  T("#mount")
+], y.prototype, "_mount", 2);
+y = P([
+  k("better-notes-tiptap-editor")
+], y);
+var vt = Object.defineProperty, bt = Object.getOwnPropertyDescriptor, v = (t, e, i, s) => {
+  for (var o = s > 1 ? void 0 : s ? bt(e, i) : e, n = t.length - 1, r; n >= 0; n--)
     (r = t[n]) && (o = (s ? r(e, i, o) : r(o)) || o);
-  return s && o && nt(e, i, o), o;
+  return s && o && vt(e, i, o), o;
 };
-let p = class extends _ {
+function O(t) {
+  if (!/data-type=["']taskList["']/.test(t)) return t;
+  const e = new DOMParser().parseFromString(t, "text/html");
+  return e.body.querySelectorAll('ul[data-type="taskList"]').forEach((i) => {
+    [...Array.from(i.children).filter((n) => n.tagName === "LI")].sort((n, r) => {
+      const u = n.getAttribute("data-checked") === "true", $ = r.getAttribute("data-checked") === "true";
+      return u !== $ ? u ? 1 : -1 : (n.textContent || "").trim().localeCompare((r.textContent || "").trim());
+    }).forEach((n) => i.appendChild(n));
+  }), e.body.innerHTML;
+}
+let c = class extends g {
   constructor() {
-    super(...arguments), this.note = null, this._pendingDelete = !1, this._justSaved = !1, this._onViewportResize = () => {
+    super(...arguments), this.note = null, this._pendingDelete = !1, this._justSaved = !1, this._displayContent = "", this._onViewportResize = () => {
       const t = window.visualViewport;
       t && this.style.setProperty("--better-notes-visible-height", `${t.height}px`);
     };
   }
   connectedCallback() {
     super.connectedCallback(), window.visualViewport?.addEventListener("resize", this._onViewportResize), this._onViewportResize();
+  }
+  // Flushes a sorted save for the note we're navigating away from — using
+  // willUpdate (before render) rather than updated() means `this._tiptap`
+  // still holds the departing note's (possibly unsaved) content, since the
+  // child's `.content` binding hasn't re-rendered to the new note yet.
+  willUpdate(t) {
+    if (!t.has("note")) return;
+    const e = t.get("note");
+    e?.note_id !== this.note?.note_id && (e && this._flushSorted(e), this._displayContent = this.note ? O(this.note.content || "") : "");
   }
   disconnectedCallback() {
     super.disconnectedCallback(), clearTimeout(this._saveTimeout), clearTimeout(this._deleteTimeout), clearTimeout(this._toastTimeout), window.visualViewport?.removeEventListener("resize", this._onViewportResize);
@@ -606,6 +703,28 @@ let p = class extends _ {
     this.dispatchEvent(new CustomEvent("note-save", { detail: e, bubbles: !0, composed: !0 })), this._justSaved = !0, clearTimeout(this._toastTimeout), this._toastTimeout = setTimeout(() => {
       this._justSaved = !1;
     }, 1e3);
+  }
+  // Sorts and saves the note being navigated away from: unchecked checklist
+  // items on top, checked below, each group alphabetical. Cancels any
+  // pending debounced save first — otherwise that timeout would later fire
+  // against `this.note`, which by then points at whatever note we're
+  // switching to, misattributing the departing note's content to it.
+  //
+  // Also pushes the sorted HTML into `_displayContent` unconditionally: when
+  // switching to a different note, willUpdate immediately overwrites it
+  // again with that note's own content (harmless). But when `note` is still
+  // the one on screen — the mobile back button doesn't change note_id, it
+  // only toggles which pane is visible — willUpdate's same-note guard would
+  // otherwise skip refreshing the display, leaving the live editor showing
+  // the pre-sort order even though the sorted version was already saved.
+  _flushSorted(t) {
+    clearTimeout(this._saveTimeout);
+    const e = O(this._tiptap?.getHTML() ?? t.content), i = this._titleInput?.value ?? t.title;
+    this._displayContent = e, !(e === t.content && i === t.title) && this.dispatchEvent(new CustomEvent("note-save", {
+      detail: { note_id: t.note_id, title: i, content: e, color: t.color, pinned: t.pinned },
+      bubbles: !0,
+      composed: !0
+    }));
   }
   _onToolbarAction(t) {
     this._tiptap?.runAction(t.detail.action, t.detail.payload);
@@ -634,12 +753,14 @@ let p = class extends _ {
   render() {
     return this.note ? a`
       <div class="header">
-        <ha-icon-button class="back-btn" .path=${H} @click=${() => this.dispatchEvent(new CustomEvent("editor-back", { bubbles: !0, composed: !0 }))}></ha-icon-button>
+        <ha-icon-button class="back-btn" .path=${G} @click=${() => {
+      this.note && this._flushSorted(this.note), this.dispatchEvent(new CustomEvent("editor-back", { bubbles: !0, composed: !0 }));
+    }}></ha-icon-button>
         <div class="actions">
           <ha-button size="s" appearance="plain" variant="neutral" @click=${() => {
       clearTimeout(this._saveTimeout), this._save();
     }}>
-            ${this._justSaved ? a`<ha-svg-icon .path=${B}></ha-svg-icon>` : "Save"}
+            ${this._justSaved ? a`<ha-svg-icon .path=${V}></ha-svg-icon>` : "Save"}
           </ha-button>
           <ha-button size="s" appearance="plain" variant="danger" @click=${() => this._onDelete()}>${this._pendingDelete ? "Confirm?" : "Delete"}</ha-button>
         </div>
@@ -654,7 +775,7 @@ let p = class extends _ {
           @keydown=${(t) => t.stopPropagation()}
         >
         <better-notes-tiptap-editor
-          .content=${this.note.content || ""}
+          .content=${this._displayContent}
           @content-changed=${() => this._scheduleSave()}
         ></better-notes-tiptap-editor>
       </div>
@@ -669,13 +790,16 @@ let p = class extends _ {
     ` : a`<div class="empty">Select a note or create one</div>`;
   }
 };
-p.styles = v`
+c.styles = f`
     :host {
       display: flex; flex-direction: column; height: var(--better-notes-visible-height, 100%);
       background: var(--card-background-color);
       min-width: 0; min-height: 0; position: relative;
     }
-    .header { padding: 12px 16px; border-bottom: 1px solid var(--divider-color); display: flex; align-items: center; gap: 10px; }
+    .header {
+      padding: 12px 16px; border-bottom: 1px solid var(--divider-color); display: flex; align-items: center; gap: 10px;
+      padding-top: max(12px, var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));
+    }
     .back-btn { display: none; }
     @media (max-width: 767px) {
       .back-btn { display: inline-flex; --mdc-icon-size: 28px; }
@@ -700,33 +824,36 @@ p.styles = v`
       height: 100%; color: var(--secondary-text-color);
     }
   `;
-f([
+v([
   l({ attribute: !1 })
-], p.prototype, "note", 2);
-f([
-  h()
-], p.prototype, "_pendingDelete", 2);
-f([
-  h()
-], p.prototype, "_justSaved", 2);
-f([
-  $("better-notes-tiptap-editor")
-], p.prototype, "_tiptap", 2);
-f([
-  $(".title-input")
-], p.prototype, "_titleInput", 2);
-p = f([
-  g("better-notes-editor")
-], p);
-var at = Object.defineProperty, lt = Object.getOwnPropertyDescriptor, u = (t, e, i, s) => {
-  for (var o = s > 1 ? void 0 : s ? lt(e, i) : e, n = t.length - 1, r; n >= 0; n--)
+], c.prototype, "note", 2);
+v([
+  p()
+], c.prototype, "_pendingDelete", 2);
+v([
+  p()
+], c.prototype, "_justSaved", 2);
+v([
+  T("better-notes-tiptap-editor")
+], c.prototype, "_tiptap", 2);
+v([
+  T(".title-input")
+], c.prototype, "_titleInput", 2);
+v([
+  p()
+], c.prototype, "_displayContent", 2);
+c = v([
+  k("better-notes-editor")
+], c);
+var mt = Object.defineProperty, _t = Object.getOwnPropertyDescriptor, b = (t, e, i, s) => {
+  for (var o = s > 1 ? void 0 : s ? _t(e, i) : e, n = t.length - 1, r; n >= 0; n--)
     (r = t[n]) && (o = (s ? r(e, i, o) : r(o)) || o);
-  return s && o && at(e, i, o), o;
+  return s && o && mt(e, i, o), o;
 };
-function ct(t) {
+function ft(t) {
   return [...t].sort((e, i) => e.pinned !== i.pinned ? e.pinned ? -1 : 1 : new Date(i.modified).getTime() - new Date(e.modified).getTime());
 }
-let c = class extends _ {
+let d = class extends g {
   constructor() {
     super(...arguments), this.narrow = !1, this._notes = [], this._selectedId = null, this._searchTerm = "", this._view = "list", this._creatingNote = !1, this._pushedEditorState = !1, this._onPopState = () => {
       this._pushedEditorState && (this._pushedEditorState = !1, this._view = "list");
@@ -748,10 +875,10 @@ let c = class extends _ {
     t.has("hass") && this.hass && !this._unsubscribe && this._init(), t.has("_view") && this.setAttribute("data-view", this._view);
   }
   async _init() {
-    await this._loadNotes(), this._unsubscribe = await j(this.hass, () => this._loadNotes());
+    await this._loadNotes(), this._unsubscribe = await F(this.hass, () => this._loadNotes());
   }
   async _loadNotes() {
-    this._notes = ct(await M(this.hass));
+    this._notes = ft(await W(this.hass));
   }
   get _selectedNote() {
     return this._notes.find((t) => t.note_id === this._selectedId) ?? null;
@@ -760,7 +887,7 @@ let c = class extends _ {
     if (!this._creatingNote) {
       this._creatingNote = !0;
       try {
-        const t = await R(this.hass, { title: "New Note", content: "", color: G, pinned: !1 });
+        const t = await K(this.hass, { title: "New Note", content: "", color: X, pinned: !1 });
         await this._loadNotes(), t && this._enterEditor(t);
       } finally {
         this._creatingNote = !1;
@@ -774,10 +901,10 @@ let c = class extends _ {
     this._searchTerm = t.detail.value;
   }
   async _onNoteSave(t) {
-    await q(this.hass, t.detail), await this._loadNotes();
+    await Y(this.hass, t.detail), await this._loadNotes();
   }
   async _onNoteDelete(t) {
-    await U(this.hass, t.detail.noteId), this._selectedId = null, this._leaveEditor(), await this._loadNotes();
+    await J(this.hass, t.detail.noteId), this._selectedId = null, this._leaveEditor(), await this._loadNotes();
   }
   _onEditorBack() {
     this._leaveEditor();
@@ -807,7 +934,7 @@ let c = class extends _ {
     `;
   }
 };
-c.styles = v`
+d.styles = f`
     :host { display: block; height: 100%; }
     .layout { display: flex; height: 100%; background: var(--card-background-color); overflow: hidden; }
     .list-pane { flex-shrink: 0; border-inline-end: 1px solid var(--divider-color); }
@@ -819,27 +946,27 @@ c.styles = v`
       :host([data-view="editor"]) .list-pane { display: none; }
     }
   `;
-u([
+b([
   l({ attribute: !1 })
-], c.prototype, "hass", 2);
-u([
+], d.prototype, "hass", 2);
+b([
   l({ type: Boolean })
-], c.prototype, "narrow", 2);
-u([
-  h()
-], c.prototype, "_notes", 2);
-u([
-  h()
-], c.prototype, "_selectedId", 2);
-u([
-  h()
-], c.prototype, "_searchTerm", 2);
-u([
-  h()
-], c.prototype, "_view", 2);
-c = u([
-  g("better-notes-panel")
-], c);
+], d.prototype, "narrow", 2);
+b([
+  p()
+], d.prototype, "_notes", 2);
+b([
+  p()
+], d.prototype, "_selectedId", 2);
+b([
+  p()
+], d.prototype, "_searchTerm", 2);
+b([
+  p()
+], d.prototype, "_view", 2);
+d = b([
+  k("better-notes-panel")
+], d);
 export {
-  c as BetterNotesPanel
+  d as BetterNotesPanel
 };

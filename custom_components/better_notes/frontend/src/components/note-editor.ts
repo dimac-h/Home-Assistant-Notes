@@ -6,6 +6,26 @@ import './tiptap-editor';
 import type { BetterNotesTiptapEditor, ToolbarAction } from './tiptap-editor';
 import type { Note } from '../api';
 
+// Sorts every checklist in the note's content: unchecked items on top,
+// checked items below, each group alphabetical. Applied wholesale when a
+// note is opened or closed rather than live during editing, so items don't
+// jump out from under the user mid-edit while typing or checking a box.
+function sortTaskListsHtml(html: string): string {
+  if (!/data-type=["']taskList["']/.test(html)) return html;
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  doc.body.querySelectorAll('ul[data-type="taskList"]').forEach((ul) => {
+    const items = Array.from(ul.children).filter((el) => el.tagName === 'LI');
+    const sorted = [...items].sort((a, b) => {
+      const aChecked = a.getAttribute('data-checked') === 'true';
+      const bChecked = b.getAttribute('data-checked') === 'true';
+      if (aChecked !== bChecked) return aChecked ? 1 : -1;
+      return (a.textContent || '').trim().localeCompare((b.textContent || '').trim());
+    });
+    sorted.forEach((li) => ul.appendChild(li));
+  });
+  return doc.body.innerHTML;
+}
+
 @customElement('better-notes-editor')
 export class BetterNotesEditor extends LitElement {
   static styles = css`
@@ -14,7 +34,10 @@ export class BetterNotesEditor extends LitElement {
       background: var(--card-background-color);
       min-width: 0; min-height: 0; position: relative;
     }
-    .header { padding: 12px 16px; border-bottom: 1px solid var(--divider-color); display: flex; align-items: center; gap: 10px; }
+    .header {
+      padding: 12px 16px; border-bottom: 1px solid var(--divider-color); display: flex; align-items: center; gap: 10px;
+      padding-top: max(12px, var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));
+    }
     .back-btn { display: none; }
     @media (max-width: 767px) {
       .back-btn { display: inline-flex; --mdc-icon-size: 28px; }
@@ -52,10 +75,32 @@ export class BetterNotesEditor extends LitElement {
   private _deleteTimeout?: ReturnType<typeof setTimeout>;
   private _toastTimeout?: ReturnType<typeof setTimeout>;
 
+  // Computed once per note-open (in willUpdate below) or refreshed directly
+  // by _flushSorted, not on every render — recomputing it from
+  // `this.note.content` on every render would re-sort on each autosave
+  // round-trip too (the parent re-passes `note` with the just-saved
+  // content), diverging from the tiptap editor's own last-emitted HTML and
+  // forcing an unwanted mid-edit reset of the editor's content. @state so a
+  // direct assignment from _flushSorted (outside the normal note-switch
+  // update cycle, e.g. the mobile back button) still triggers a re-render.
+  @state() private _displayContent = '';
+
   connectedCallback(): void {
     super.connectedCallback();
     window.visualViewport?.addEventListener('resize', this._onViewportResize);
     this._onViewportResize();
+  }
+
+  // Flushes a sorted save for the note we're navigating away from — using
+  // willUpdate (before render) rather than updated() means `this._tiptap`
+  // still holds the departing note's (possibly unsaved) content, since the
+  // child's `.content` binding hasn't re-rendered to the new note yet.
+  willUpdate(changed: Map<string, unknown>): void {
+    if (!changed.has('note')) return;
+    const previous = changed.get('note') as Note | null | undefined;
+    if (previous?.note_id === this.note?.note_id) return;
+    if (previous) this._flushSorted(previous);
+    this._displayContent = this.note ? sortTaskListsHtml(this.note.content || '') : '';
   }
 
   disconnectedCallback(): void {
@@ -97,6 +142,32 @@ export class BetterNotesEditor extends LitElement {
     this._toastTimeout = setTimeout(() => { this._justSaved = false; }, 1000);
   }
 
+  // Sorts and saves the note being navigated away from: unchecked checklist
+  // items on top, checked below, each group alphabetical. Cancels any
+  // pending debounced save first — otherwise that timeout would later fire
+  // against `this.note`, which by then points at whatever note we're
+  // switching to, misattributing the departing note's content to it.
+  //
+  // Also pushes the sorted HTML into `_displayContent` unconditionally: when
+  // switching to a different note, willUpdate immediately overwrites it
+  // again with that note's own content (harmless). But when `note` is still
+  // the one on screen — the mobile back button doesn't change note_id, it
+  // only toggles which pane is visible — willUpdate's same-note guard would
+  // otherwise skip refreshing the display, leaving the live editor showing
+  // the pre-sort order even though the sorted version was already saved.
+  private _flushSorted(note: Note): void {
+    clearTimeout(this._saveTimeout);
+    const content = sortTaskListsHtml(this._tiptap?.getHTML() ?? note.content);
+    const title = this._titleInput?.value ?? note.title;
+    this._displayContent = content;
+    if (content === note.content && title === note.title) return;
+    this.dispatchEvent(new CustomEvent('note-save', {
+      detail: { note_id: note.note_id, title, content, color: note.color, pinned: note.pinned },
+      bubbles: true,
+      composed: true,
+    }));
+  }
+
   private _onToolbarAction(e: CustomEvent<{ action: ToolbarAction; payload?: { href?: string } }>): void {
     this._tiptap?.runAction(e.detail.action, e.detail.payload);
   }
@@ -135,7 +206,10 @@ export class BetterNotesEditor extends LitElement {
     }
     return html`
       <div class="header">
-        <ha-icon-button class="back-btn" .path=${mdiArrowLeft} @click=${() => this.dispatchEvent(new CustomEvent('editor-back', { bubbles: true, composed: true }))}></ha-icon-button>
+        <ha-icon-button class="back-btn" .path=${mdiArrowLeft} @click=${() => {
+          if (this.note) this._flushSorted(this.note);
+          this.dispatchEvent(new CustomEvent('editor-back', { bubbles: true, composed: true }));
+        }}></ha-icon-button>
         <div class="actions">
           <ha-button size="s" appearance="plain" variant="neutral" @click=${() => { clearTimeout(this._saveTimeout); this._save(); }}>
             ${this._justSaved ? html`<ha-svg-icon .path=${mdiCheck}></ha-svg-icon>` : 'Save'}
@@ -153,7 +227,7 @@ export class BetterNotesEditor extends LitElement {
           @keydown=${(e: KeyboardEvent) => e.stopPropagation()}
         >
         <better-notes-tiptap-editor
-          .content=${this.note.content || ''}
+          .content=${this._displayContent}
           @content-changed=${() => this._scheduleSave()}
         ></better-notes-tiptap-editor>
       </div>
