@@ -1,7 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import './note-list-item';
-import { stripHtml } from '../colors';
+import { stripHtml } from '../format';
 import type { Note } from '../api';
 
 @customElement('better-notes-list')

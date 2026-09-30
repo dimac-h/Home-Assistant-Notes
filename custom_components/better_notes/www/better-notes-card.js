@@ -1,8 +1,8 @@
-import { i as _, r as h, a as f, b as s, t as g, n as v, g as p, s as w, c as u, m as x, d as y, f as $, e as N } from "./colors-MRcmDynT.js";
-var C = Object.defineProperty, E = Object.getOwnPropertyDescriptor, m = (t, e, i, n) => {
-  for (var o = n > 1 ? void 0 : n ? E(e, i) : e, a = t.length - 1, r; a >= 0; a--)
+import { i as _, r as h, a as f, b as s, t as g, n as v, g as p, s as w, c as u, m as x, d as y, f as $, e as N } from "./format-1mjcoacS.js";
+var E = Object.defineProperty, C = Object.getOwnPropertyDescriptor, m = (t, e, i, n) => {
+  for (var o = n > 1 ? void 0 : n ? C(e, i) : e, a = t.length - 1, r; a >= 0; a--)
     (r = t[a]) && (o = (n ? r(e, i, o) : r(o)) || o);
-  return n && o && C(e, i, o), o;
+  return n && o && E(e, i, o), o;
 };
 let c = class extends f {
   constructor() {
@@ -62,7 +62,12 @@ m([
 c = m([
   g("better-notes-card-editor")
 ], c);
-const A = /* @__PURE__ */ new Set([
+var A = Object.defineProperty, O = Object.getOwnPropertyDescriptor, d = (t, e, i, n) => {
+  for (var o = n > 1 ? void 0 : n ? O(e, i) : e, a = t.length - 1, r; a >= 0; a--)
+    (r = t[a]) && (o = (n ? r(e, i, o) : r(o)) || o);
+  return n && o && A(e, i, o), o;
+};
+const S = /* @__PURE__ */ new Set([
   "p",
   "br",
   "strong",
@@ -89,10 +94,10 @@ const A = /* @__PURE__ */ new Set([
   "label",
   "span",
   "div"
-]), O = {
+]), P = {
   a: ["href", "target", "rel"],
   input: ["type", "checked", "disabled"]
-}, P = /^(https?:|mailto:)/i;
+}, T = /^(https?:|mailto:)/i;
 function b(t) {
   if (t.nodeType === Node.TEXT_NODE) return;
   if (t.nodeType !== Node.ELEMENT_NODE) {
@@ -100,30 +105,25 @@ function b(t) {
     return;
   }
   const e = t, i = e.tagName.toLowerCase();
-  if (!A.has(i)) {
+  if (!S.has(i)) {
     const o = e.parentNode;
     for (; e.firstChild; ) o?.insertBefore(e.firstChild, e);
     o?.removeChild(e);
     return;
   }
-  const n = O[i] || [];
+  const n = P[i] || [];
   if (Array.from(e.attributes).forEach((o) => {
     !n.includes(o.name) && o.name !== "data-type" && o.name !== "data-checked" && e.removeAttribute(o.name);
   }), i === "a") {
     const o = e.getAttribute("href") || "";
-    P.test(o) || e.removeAttribute("href"), e.setAttribute("rel", "noopener noreferrer");
+    T.test(o) || e.removeAttribute("href"), e.setAttribute("rel", "noopener noreferrer");
   }
   Array.from(e.childNodes).forEach(b);
 }
-function S(t) {
+function k(t) {
   const e = new DOMParser().parseFromString(t, "text/html");
   return Array.from(e.body.childNodes).forEach(b), e.body.innerHTML;
 }
-var k = Object.defineProperty, D = Object.getOwnPropertyDescriptor, d = (t, e, i, n) => {
-  for (var o = n > 1 ? void 0 : n ? D(e, i) : e, a = t.length - 1, r; a >= 0; a--)
-    (r = t[a]) && (o = (n ? r(e, i, o) : r(o)) || o);
-  return n && o && k(e, i, o), o;
-};
 let l = class extends f {
   constructor() {
     super(...arguments), this._config = { type: "custom:better-notes-card" }, this._notes = [];
@@ -170,7 +170,7 @@ let l = class extends f {
           <span>${t.title || "Untitled"}</span>
           ${t.pinned ? s`<ha-svg-icon .path=${x}></ha-svg-icon>` : ""}
         </div>
-        ${e ? s`<div class="note-content" .innerHTML=${S(t.content || "")}></div>` : s`<div class="note-content">${(() => {
+        ${e ? s`<div class="note-content" .innerHTML=${k(t.content || "")}></div>` : s`<div class="note-content">${(() => {
       const i = y(t.content || "");
       return i.length > 150 ? `${i.slice(0, 150)}…` : i;
     })()}</div>`}

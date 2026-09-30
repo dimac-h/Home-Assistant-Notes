@@ -120,6 +120,44 @@ export class BetterNotesTiptapEditor extends LitElement {
       onUpdate: () => this._emitChanged(),
     });
     this._lastEmitted = this._editor.getHTML();
+    // Bubble-phase listener on the mount, not the checkbox itself: TaskItem's
+    // own nodeView attaches a 'change' listener directly on the <input> that
+    // updates the node's `checked` attr, so by the time this fires (further
+    // up the bubble path) that attribute update has already landed in the
+    // editor state and we're reordering the post-toggle list.
+    this._mount?.addEventListener('change', (e) => {
+      const target = e.target as HTMLElement;
+      if (target instanceof HTMLInputElement && target.type === 'checkbox' && target.closest('ul[data-type="taskList"]')) {
+        this._reorderTaskList(target);
+      }
+    });
+  }
+
+  // Keeps a checklist tidy after a check/uncheck: unchecked items on top,
+  // checked items below, each group sorted alphabetically. Only runs on
+  // checkbox toggle (not on every keystroke) so typing a new item doesn't
+  // jump around the list while the user is still writing it.
+  private _reorderTaskList(checkbox: HTMLInputElement): void {
+    const view = this._editor?.view;
+    const li = checkbox.closest('li');
+    if (!view || !li) return;
+    const $pos = view.state.doc.resolve(view.posAtDOM(li, 0));
+    let depth = $pos.depth;
+    while (depth > 0 && $pos.node(depth).type.name !== 'taskList') depth--;
+    if ($pos.node(depth).type.name !== 'taskList') return;
+    const listNode = $pos.node(depth);
+    const items: any[] = [];
+    listNode.forEach((child: any) => items.push(child));
+    const sorted = [...items].sort((a, b) => {
+      const aChecked = !!a.attrs.checked;
+      const bChecked = !!b.attrs.checked;
+      if (aChecked !== bChecked) return aChecked ? 1 : -1;
+      return (a.textContent || '').trim().localeCompare((b.textContent || '').trim());
+    });
+    if (sorted.every((item, i) => item === items[i])) return;
+    const from = $pos.before(depth) + 1;
+    const to = from + listNode.content.size;
+    view.dispatch(view.state.tr.replaceWith(from, to, sorted));
   }
 
   private _emitChanged(): void {
