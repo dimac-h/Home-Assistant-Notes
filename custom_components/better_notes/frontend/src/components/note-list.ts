@@ -10,7 +10,7 @@ export class BetterNotesList extends LitElement {
     :host { display: flex; flex-direction: column; height: 100%; background: var(--card-background-color); }
     .header {
       background: var(--card-background-color);
-      padding-block: var(--ha-space-4) var(--ha-space-3);
+      padding-block: max(var(--ha-space-4), var(--safe-area-inset-top, env(safe-area-inset-top, 0px))) var(--ha-space-3);
       padding-inline: var(--ha-space-4);
     }
     .title-row { display: flex; align-items: center; gap: var(--ha-space-2); margin-block-end: var(--ha-space-3); }
@@ -37,9 +37,11 @@ export class BetterNotesList extends LitElement {
        no CSS variable indirection — target the exported shadow part
        directly instead of clipping/offsetting the whole element, so this
        tracks the control's real box rather than a guessed pixel offset. */
-    ha-input::part(base) { height: 34px; min-height: 34px; }
-    ha-button { width: 100%; --wa-form-control-border-radius: 6px; }
-    .items { flex: 1; overflow-y: auto; padding: var(--ha-space-3) var(--ha-space-4); }
+    ha-input::part(base) { height: 28px; min-height: 28px; }
+    ha-button { width: 100%; --wa-form-control-border-radius: 6px; --ha-button-height: 40px; }
+    ha-button::part(base) { height: 40px; }
+    .items { flex: 1; overflow-y: auto; padding: var(--ha-space-3) var(--ha-space-4); scrollbar-width: none; }
+    .items::-webkit-scrollbar { display: none; }
     .empty { padding: 20px; text-align: center; color: var(--secondary-text-color); font-size: 14px; }
   `;
 

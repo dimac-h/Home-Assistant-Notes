@@ -1,10 +1,10 @@
-import { A, E as H, i as f, n as l, a as g, h as M, c as B, m as j, b as a, f as R, t as k, d as U, r as p, N as q, j as G, k as V, s as F, g as W, l as K, D as X, u as Y, o as J } from "./format-1mjcoacS.js";
+import { A, E as H, i as g, n as l, a as _, h as M, c as B, m as R, b as a, f as j, t as w, d as V, r as p, N as q, j as U, k as G, s as F, g as W, l as Y, D as K, u as X, o as J } from "./format-1mjcoacS.js";
 const Q = (t, e, i) => (i.configurable = !0, i.enumerable = !0, Reflect.decorate && typeof e != "object" && Object.defineProperty(t, e, i), i);
-function T(t, e) {
+function E(t, e) {
   return (i, s, o) => {
-    const n = (r) => r.renderRoot?.querySelector(t) ?? null;
+    const r = (n) => n.renderRoot?.querySelector(t) ?? null;
     return Q(i, s, { get() {
-      return n(this);
+      return r(this);
     } });
   };
 }
@@ -25,7 +25,7 @@ class et {
     return this.render(...i);
   }
 }
-class E extends et {
+class T extends et {
   constructor(e) {
     if (super(e), this.it = A, e.type !== Z.CHILD) throw Error(this.constructor.directiveName + "() can only be used in child bindings");
   }
@@ -39,14 +39,14 @@ class E extends et {
     return i.raw = i, this._t = { _$litType$: this.constructor.resultType, strings: i, values: [] };
   }
 }
-E.directiveName = "unsafeHTML", E.resultType = 1;
-const it = tt(E);
+T.directiveName = "unsafeHTML", T.resultType = 1;
+const it = tt(T);
 var ot = Object.defineProperty, st = Object.getOwnPropertyDescriptor, N = (t, e, i, s) => {
-  for (var o = s > 1 ? void 0 : s ? st(e, i) : e, n = t.length - 1, r; n >= 0; n--)
-    (r = t[n]) && (o = (s ? r(e, i, o) : r(o)) || o);
+  for (var o = s > 1 ? void 0 : s ? st(e, i) : e, r = t.length - 1, n; r >= 0; r--)
+    (n = t[r]) && (o = (s ? n(e, i, o) : n(o)) || o);
   return s && o && ot(e, i, o), o;
 };
-const nt = /* @__PURE__ */ new Set([
+const rt = /* @__PURE__ */ new Set([
   "P",
   "BR",
   "UL",
@@ -77,7 +77,7 @@ function D(t) {
       continue;
     }
     const s = e;
-    if (!nt.has(s.tagName)) {
+    if (!rt.has(s.tagName)) {
       if (s.tagName === "SCRIPT" || s.tagName === "STYLE") {
         s.remove(), e = i;
         continue;
@@ -92,13 +92,13 @@ function D(t) {
     }), s.tagName === "INPUT" && (s.setAttribute("type", "checkbox"), s.setAttribute("disabled", "")), D(s), e = i;
   }
 }
-function rt(t) {
+function nt(t) {
   const e = new DOMParser().parseFromString(t, "text/html");
   return D(e.body), Array.from(e.body.querySelectorAll("p")).forEach((i) => {
     !i.textContent?.trim() && !i.querySelector("input") && i.remove();
   }), e.body.innerHTML;
 }
-let x = class extends g {
+let x = class extends _ {
   constructor() {
     super(...arguments), this.active = !1, this._select = () => {
       this.dispatchEvent(new CustomEvent("note-select", {
@@ -115,7 +115,7 @@ let x = class extends g {
     super.disconnectedCallback(), this.removeEventListener("click", this._select);
   }
   render() {
-    const t = rt(this.note.content || ""), { title: e, muted: i } = M(this.note.color);
+    const t = nt(this.note.content || ""), { title: e, muted: i } = M(this.note.color);
     return a`
       <div
         class="card"
@@ -123,15 +123,15 @@ let x = class extends g {
       >
         <div class="header">
           <div class="title">${this.note.title || "Untitled"}</div>
-          ${this.note.pinned ? a`<ha-svg-icon .path=${j}></ha-svg-icon>` : ""}
+          ${this.note.pinned ? a`<ha-svg-icon .path=${R}></ha-svg-icon>` : ""}
         </div>
         <div class="preview">${it(t)}</div>
-        <div class="date">${R(this.note.modified)}</div>
+        <div class="date">${j(this.note.modified)}</div>
       </div>
     `;
   }
 };
-x.styles = f`
+x.styles = g`
     :host { display: block; cursor: pointer; margin-block-end: var(--ha-space-2); }
     .card {
       border-radius: 6px;
@@ -166,14 +166,14 @@ N([
   l({ type: Boolean, reflect: !0 })
 ], x.prototype, "active", 2);
 x = N([
-  k("better-notes-list-item")
+  w("better-notes-list-item")
 ], x);
 var at = Object.defineProperty, lt = Object.getOwnPropertyDescriptor, L = (t, e, i, s) => {
-  for (var o = s > 1 ? void 0 : s ? lt(e, i) : e, n = t.length - 1, r; n >= 0; n--)
-    (r = t[n]) && (o = (s ? r(e, i, o) : r(o)) || o);
+  for (var o = s > 1 ? void 0 : s ? lt(e, i) : e, r = t.length - 1, n; r >= 0; r--)
+    (n = t[r]) && (o = (s ? n(e, i, o) : n(o)) || o);
   return s && o && at(e, i, o), o;
 };
-let _ = class extends g {
+let f = class extends _ {
   constructor() {
     super(...arguments), this.notes = [], this.selectedNoteId = null, this.searchTerm = "";
   }
@@ -187,7 +187,7 @@ let _ = class extends g {
   get _filtered() {
     const t = this.searchTerm.toLowerCase();
     return t ? this.notes.filter(
-      (e) => (e.title || "").toLowerCase().includes(t) || U(e.content || "").toLowerCase().includes(t)
+      (e) => (e.title || "").toLowerCase().includes(t) || V(e.content || "").toLowerCase().includes(t)
     ) : this.notes;
   }
   render() {
@@ -211,11 +211,11 @@ let _ = class extends g {
     `;
   }
 };
-_.styles = f`
+f.styles = g`
     :host { display: flex; flex-direction: column; height: 100%; background: var(--card-background-color); }
     .header {
       background: var(--card-background-color);
-      padding-block: var(--ha-space-4) var(--ha-space-3);
+      padding-block: max(var(--ha-space-4), var(--safe-area-inset-top, env(safe-area-inset-top, 0px))) var(--ha-space-3);
       padding-inline: var(--ha-space-4);
     }
     .title-row { display: flex; align-items: center; gap: var(--ha-space-2); margin-block-end: var(--ha-space-3); }
@@ -242,29 +242,31 @@ _.styles = f`
        no CSS variable indirection — target the exported shadow part
        directly instead of clipping/offsetting the whole element, so this
        tracks the control's real box rather than a guessed pixel offset. */
-    ha-input::part(base) { height: 34px; min-height: 34px; }
-    ha-button { width: 100%; --wa-form-control-border-radius: 6px; }
-    .items { flex: 1; overflow-y: auto; padding: var(--ha-space-3) var(--ha-space-4); }
+    ha-input::part(base) { height: 28px; min-height: 28px; }
+    ha-button { width: 100%; --wa-form-control-border-radius: 6px; --ha-button-height: 40px; }
+    ha-button::part(base) { height: 40px; }
+    .items { flex: 1; overflow-y: auto; padding: var(--ha-space-3) var(--ha-space-4); scrollbar-width: none; }
+    .items::-webkit-scrollbar { display: none; }
     .empty { padding: 20px; text-align: center; color: var(--secondary-text-color); font-size: 14px; }
   `;
 L([
   l({ attribute: !1 })
-], _.prototype, "notes", 2);
+], f.prototype, "notes", 2);
 L([
   l({ type: String })
-], _.prototype, "selectedNoteId", 2);
+], f.prototype, "selectedNoteId", 2);
 L([
   l({ type: String })
-], _.prototype, "searchTerm", 2);
-_ = L([
-  k("better-notes-list")
-], _);
-var ct = Object.defineProperty, dt = Object.getOwnPropertyDescriptor, w = (t, e, i, s) => {
-  for (var o = s > 1 ? void 0 : s ? dt(e, i) : e, n = t.length - 1, r; n >= 0; n--)
-    (r = t[n]) && (o = (s ? r(e, i, o) : r(o)) || o);
+], f.prototype, "searchTerm", 2);
+f = L([
+  w("better-notes-list")
+], f);
+var ct = Object.defineProperty, dt = Object.getOwnPropertyDescriptor, k = (t, e, i, s) => {
+  for (var o = s > 1 ? void 0 : s ? dt(e, i) : e, r = t.length - 1, n; r >= 0; r--)
+    (n = t[r]) && (o = (s ? n(e, i, o) : n(o)) || o);
   return s && o && ct(e, i, o), o;
 };
-let h = class extends g {
+let h = class extends _ {
   constructor() {
     super(...arguments), this.pinned = !1, this.color = "", this.linkHref = "", this._openGroup = null, this._linkOpen = !1;
   }
@@ -361,7 +363,7 @@ let h = class extends g {
     `;
   }
 };
-h.styles = f`
+h.styles = g`
     :host {
       display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 8px 12px;
       background: var(--card-background-color); border: 1px solid var(--divider-color);
@@ -391,26 +393,26 @@ h.styles = f`
     .link-row { display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 0 2px; flex-basis: 100%; }
     .link-row ha-input { flex: 1; }
   `;
-w([
+k([
   l({ type: Boolean })
 ], h.prototype, "pinned", 2);
-w([
+k([
   l({ type: String })
 ], h.prototype, "color", 2);
-w([
+k([
   l({ type: String })
 ], h.prototype, "linkHref", 2);
-w([
+k([
   p()
 ], h.prototype, "_openGroup", 2);
-w([
+k([
   p()
 ], h.prototype, "_linkOpen", 2);
-h = w([
-  k("better-notes-toolbar")
+h = k([
+  w("better-notes-toolbar")
 ], h);
 async function pt() {
-  const [{ Editor: t }, { StarterKit: e }, { TaskList: i }, { TaskItem: s }, { Link: o }, { Highlight: n }, { ListItem: r }] = await Promise.all([
+  const [{ Editor: t }, { StarterKit: e }, { TaskList: i }, { TaskItem: s }, { Link: o }, { Highlight: r }, { ListItem: n }] = await Promise.all([
     import("./index-pa5U7i3D.js").then((u) => u.O),
     import("./index-Yys9n5GD.js"),
     import("./index-B0TKEn8L.js"),
@@ -429,20 +431,20 @@ async function pt() {
       // ProseMirror climbs up through every ancestor list to find a place
       // it IS valid, collapsing all nested indentation in the process.
       e.configure({ heading: { levels: [1, 2, 3] }, link: !1, listItem: !1, hardBreak: !1 }),
-      r.extend({ content: "(paragraph|heading) block*" }),
+      n.extend({ content: "(paragraph|heading) block*" }),
       i,
       s.configure({ nested: !0 }),
       o.configure({ openOnClick: !0 }),
-      n
+      r
     ]
   };
 }
 var ht = Object.defineProperty, ut = Object.getOwnPropertyDescriptor, P = (t, e, i, s) => {
-  for (var o = s > 1 ? void 0 : s ? ut(e, i) : e, n = t.length - 1, r; n >= 0; n--)
-    (r = t[n]) && (o = (s ? r(e, i, o) : r(o)) || o);
+  for (var o = s > 1 ? void 0 : s ? ut(e, i) : e, r = t.length - 1, n; r >= 0; r--)
+    (n = t[r]) && (o = (s ? n(e, i, o) : n(o)) || o);
   return s && o && ht(e, i, o), o;
 };
-let y = class extends g {
+let y = class extends _ {
   constructor() {
     super(...arguments), this.content = "", this._editor = null, this._fallback = !1, this._lastEmitted = "";
   }
@@ -454,6 +456,12 @@ let y = class extends g {
   }
   updated(t) {
     t.has("content") && this._editor && this.content !== this._lastEmitted && (this._lastEmitted = this.content, this._editor.commands.setContent(this.content, { emitUpdate: !1 }), this._editor.commands.focus("end"));
+  }
+  // Re-scrolls the caret into view if the editor has focus. Needed after the
+  // on-screen keyboard finishes opening: the autofocus scroll runs before the
+  // viewport has shrunk, so the caret (at the end of the note) ends up hidden.
+  scrollCaretIntoView() {
+    this._editor?.isFocused && this._editor.commands.scrollIntoView();
   }
   async _init() {
     let t;
@@ -489,14 +497,14 @@ let y = class extends g {
     let o = s.depth;
     for (; o > 0 && s.node(o).type.name !== "taskList"; ) o--;
     if (s.node(o).type.name !== "taskList") return;
-    const n = s.node(o), r = [];
-    n.forEach((m) => r.push(m));
-    const u = [...r].sort((m, C) => {
+    const r = s.node(o), n = [];
+    r.forEach((m) => n.push(m));
+    const u = [...n].sort((m, C) => {
       const S = !!m.attrs.checked, z = !!C.attrs.checked;
       return S !== z ? S ? 1 : -1 : (m.textContent || "").trim().localeCompare((C.textContent || "").trim());
     });
-    if (u.every((m, C) => m === r[C])) return;
-    const $ = s.before(o) + 1, I = $ + n.content.size;
+    if (u.every((m, C) => m === n[C])) return;
+    const $ = s.before(o) + 1, I = $ + r.content.size;
     e.dispatch(e.state.tr.replaceWith($, I, u));
   }
   _emitChanged() {
@@ -583,7 +591,7 @@ let y = class extends g {
       ></textarea>` : a`<div id="mount" @keydown=${(t) => t.stopPropagation()}></div>`;
   }
 };
-y.styles = f`
+y.styles = g`
     :host { display: flex; flex-direction: column; min-height: 0; flex: 1; }
     .fallback {
       width: 100%; min-height: 300px; font-size: 15px; line-height: 1.6;
@@ -646,35 +654,38 @@ P([
   l({ attribute: !1 })
 ], y.prototype, "content", 2);
 P([
-  T("#mount")
+  E("#mount")
 ], y.prototype, "_mount", 2);
 y = P([
-  k("better-notes-tiptap-editor")
+  w("better-notes-tiptap-editor")
 ], y);
-var vt = Object.defineProperty, bt = Object.getOwnPropertyDescriptor, v = (t, e, i, s) => {
-  for (var o = s > 1 ? void 0 : s ? bt(e, i) : e, n = t.length - 1, r; n >= 0; n--)
-    (r = t[n]) && (o = (s ? r(e, i, o) : r(o)) || o);
-  return s && o && vt(e, i, o), o;
+var bt = Object.defineProperty, vt = Object.getOwnPropertyDescriptor, b = (t, e, i, s) => {
+  for (var o = s > 1 ? void 0 : s ? vt(e, i) : e, r = t.length - 1, n; r >= 0; r--)
+    (n = t[r]) && (o = (s ? n(e, i, o) : n(o)) || o);
+  return s && o && bt(e, i, o), o;
 };
 function O(t) {
   if (!/data-type=["']taskList["']/.test(t)) return t;
   const e = new DOMParser().parseFromString(t, "text/html");
   return e.body.querySelectorAll('ul[data-type="taskList"]').forEach((i) => {
-    [...Array.from(i.children).filter((n) => n.tagName === "LI")].sort((n, r) => {
-      const u = n.getAttribute("data-checked") === "true", $ = r.getAttribute("data-checked") === "true";
-      return u !== $ ? u ? 1 : -1 : (n.textContent || "").trim().localeCompare((r.textContent || "").trim());
-    }).forEach((n) => i.appendChild(n));
+    [...Array.from(i.children).filter((r) => r.tagName === "LI")].sort((r, n) => {
+      const u = r.getAttribute("data-checked") === "true", $ = n.getAttribute("data-checked") === "true";
+      return u !== $ ? u ? 1 : -1 : (r.textContent || "").trim().localeCompare((n.textContent || "").trim());
+    }).forEach((r) => i.appendChild(r));
   }), e.body.innerHTML;
 }
-let c = class extends g {
+let c = class extends _ {
   constructor() {
     super(...arguments), this.note = null, this._pendingDelete = !1, this._justSaved = !1, this._displayContent = "", this._onViewportResize = () => {
       const t = window.visualViewport;
-      t && this.style.setProperty("--better-notes-visible-height", `${t.height}px`);
+      if (!t) return;
+      this.style.setProperty("--better-notes-visible-height", `${t.height}px`);
+      const e = window.innerHeight - t.height > 100;
+      this.toggleAttribute("keyboard-open", e), this.toggleAttribute("browser-bar", !e && t.offsetTop + t.height < window.screen.height - 20), this.style.setProperty("--better-notes-offset-top", e ? `${t.offsetTop}px` : "0px"), !e && (window.scrollY || t.offsetTop) && window.scrollTo(0, 0), e && requestAnimationFrame(() => this._tiptap?.scrollCaretIntoView());
     };
   }
   connectedCallback() {
-    super.connectedCallback(), window.visualViewport?.addEventListener("resize", this._onViewportResize), this._onViewportResize();
+    super.connectedCallback(), window.visualViewport?.addEventListener("resize", this._onViewportResize), window.visualViewport?.addEventListener("scroll", this._onViewportResize), this._onViewportResize();
   }
   // Flushes a sorted save for the note we're navigating away from — using
   // willUpdate (before render) rather than updated() means `this._tiptap`
@@ -686,7 +697,7 @@ let c = class extends g {
     e?.note_id !== this.note?.note_id && (e && this._flushSorted(e), this._displayContent = this.note ? O(this.note.content || "") : "");
   }
   disconnectedCallback() {
-    super.disconnectedCallback(), clearTimeout(this._saveTimeout), clearTimeout(this._deleteTimeout), clearTimeout(this._toastTimeout), window.visualViewport?.removeEventListener("resize", this._onViewportResize);
+    super.disconnectedCallback(), clearTimeout(this._saveTimeout), clearTimeout(this._deleteTimeout), clearTimeout(this._toastTimeout), window.visualViewport?.removeEventListener("resize", this._onViewportResize), window.visualViewport?.removeEventListener("scroll", this._onViewportResize);
   }
   _scheduleSave() {
     clearTimeout(this._saveTimeout), this._saveTimeout = setTimeout(() => this._save(), 1e3);
@@ -753,14 +764,14 @@ let c = class extends g {
   render() {
     return this.note ? a`
       <div class="header">
-        <ha-icon-button class="back-btn" .path=${G} @click=${() => {
+        <ha-icon-button class="back-btn" .path=${U} @click=${() => {
       this.note && this._flushSorted(this.note), this.dispatchEvent(new CustomEvent("editor-back", { bubbles: !0, composed: !0 }));
     }}></ha-icon-button>
         <div class="actions">
           <ha-button size="s" appearance="plain" variant="neutral" @click=${() => {
       clearTimeout(this._saveTimeout), this._save();
     }}>
-            ${this._justSaved ? a`<ha-svg-icon .path=${V}></ha-svg-icon>` : "Save"}
+            ${this._justSaved ? a`<ha-svg-icon .path=${G}></ha-svg-icon>` : "Save"}
           </ha-button>
           <ha-button size="s" appearance="plain" variant="danger" @click=${() => this._onDelete()}>${this._pendingDelete ? "Confirm?" : "Delete"}</ha-button>
         </div>
@@ -790,11 +801,12 @@ let c = class extends g {
     ` : a`<div class="empty">Select a note or create one</div>`;
   }
 };
-c.styles = f`
+c.styles = g`
     :host {
       display: flex; flex-direction: column; height: var(--better-notes-visible-height, 100%);
       background: var(--card-background-color);
       min-width: 0; min-height: 0; position: relative;
+      transform: translateY(var(--better-notes-offset-top, 0px));
     }
     .header {
       padding: 12px 16px; border-bottom: 1px solid var(--divider-color); display: flex; align-items: center; gap: 10px;
@@ -815,6 +827,10 @@ c.styles = f`
       margin: 8px 12px 12px;
       margin-bottom: calc(12px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
     }
+    /* The home-indicator inset is covered by the keyboard while it's open. */
+    :host([keyboard-open]) better-notes-toolbar { margin-bottom: 8px; }
+    /* Same when Safari's own bottom bar sits over the inset instead of the keyboard. */
+    :host([browser-bar]) better-notes-toolbar { margin-bottom: 12px; }
     .title-input {
       width: 100%; font-size: 28px; font-weight: 700; border: none; outline: none; margin-bottom: 16px;
       color: var(--primary-text-color); background: transparent; font-family: inherit;
@@ -824,36 +840,36 @@ c.styles = f`
       height: 100%; color: var(--secondary-text-color);
     }
   `;
-v([
+b([
   l({ attribute: !1 })
 ], c.prototype, "note", 2);
-v([
+b([
   p()
 ], c.prototype, "_pendingDelete", 2);
-v([
+b([
   p()
 ], c.prototype, "_justSaved", 2);
-v([
-  T("better-notes-tiptap-editor")
+b([
+  E("better-notes-tiptap-editor")
 ], c.prototype, "_tiptap", 2);
-v([
-  T(".title-input")
+b([
+  E(".title-input")
 ], c.prototype, "_titleInput", 2);
-v([
+b([
   p()
 ], c.prototype, "_displayContent", 2);
-c = v([
-  k("better-notes-editor")
+c = b([
+  w("better-notes-editor")
 ], c);
-var mt = Object.defineProperty, _t = Object.getOwnPropertyDescriptor, b = (t, e, i, s) => {
-  for (var o = s > 1 ? void 0 : s ? _t(e, i) : e, n = t.length - 1, r; n >= 0; n--)
-    (r = t[n]) && (o = (s ? r(e, i, o) : r(o)) || o);
+var mt = Object.defineProperty, ft = Object.getOwnPropertyDescriptor, v = (t, e, i, s) => {
+  for (var o = s > 1 ? void 0 : s ? ft(e, i) : e, r = t.length - 1, n; r >= 0; r--)
+    (n = t[r]) && (o = (s ? n(e, i, o) : n(o)) || o);
   return s && o && mt(e, i, o), o;
 };
-function ft(t) {
+function gt(t) {
   return [...t].sort((e, i) => e.pinned !== i.pinned ? e.pinned ? -1 : 1 : new Date(i.modified).getTime() - new Date(e.modified).getTime());
 }
-let d = class extends g {
+let d = class extends _ {
   constructor() {
     super(...arguments), this.narrow = !1, this._notes = [], this._selectedId = null, this._searchTerm = "", this._view = "list", this._creatingNote = !1, this._pushedEditorState = !1, this._onPopState = () => {
       this._pushedEditorState && (this._pushedEditorState = !1, this._view = "list");
@@ -878,7 +894,7 @@ let d = class extends g {
     await this._loadNotes(), this._unsubscribe = await F(this.hass, () => this._loadNotes());
   }
   async _loadNotes() {
-    this._notes = ft(await W(this.hass));
+    this._notes = gt(await W(this.hass));
   }
   get _selectedNote() {
     return this._notes.find((t) => t.note_id === this._selectedId) ?? null;
@@ -887,7 +903,7 @@ let d = class extends g {
     if (!this._creatingNote) {
       this._creatingNote = !0;
       try {
-        const t = await K(this.hass, { title: "New Note", content: "", color: X, pinned: !1 });
+        const t = await Y(this.hass, { title: "New Note", content: "", color: K, pinned: !1 });
         await this._loadNotes(), t && this._enterEditor(t);
       } finally {
         this._creatingNote = !1;
@@ -901,7 +917,7 @@ let d = class extends g {
     this._searchTerm = t.detail.value;
   }
   async _onNoteSave(t) {
-    await Y(this.hass, t.detail), await this._loadNotes();
+    await X(this.hass, t.detail), await this._loadNotes();
   }
   async _onNoteDelete(t) {
     await J(this.hass, t.detail.noteId), this._selectedId = null, this._leaveEditor(), await this._loadNotes();
@@ -934,7 +950,7 @@ let d = class extends g {
     `;
   }
 };
-d.styles = f`
+d.styles = g`
     :host { display: block; height: 100%; }
     .layout { display: flex; height: 100%; background: var(--card-background-color); overflow: hidden; }
     .list-pane { flex-shrink: 0; border-inline-end: 1px solid var(--divider-color); }
@@ -946,26 +962,26 @@ d.styles = f`
       :host([data-view="editor"]) .list-pane { display: none; }
     }
   `;
-b([
+v([
   l({ attribute: !1 })
 ], d.prototype, "hass", 2);
-b([
+v([
   l({ type: Boolean })
 ], d.prototype, "narrow", 2);
-b([
+v([
   p()
 ], d.prototype, "_notes", 2);
-b([
+v([
   p()
 ], d.prototype, "_selectedId", 2);
-b([
+v([
   p()
 ], d.prototype, "_searchTerm", 2);
-b([
+v([
   p()
 ], d.prototype, "_view", 2);
-d = b([
-  k("better-notes-panel")
+d = v([
+  w("better-notes-panel")
 ], d);
 export {
   d as BetterNotesPanel

@@ -98,6 +98,13 @@ export class BetterNotesTiptapEditor extends LitElement {
     }
   }
 
+  // Re-scrolls the caret into view if the editor has focus. Needed after the
+  // on-screen keyboard finishes opening: the autofocus scroll runs before the
+  // viewport has shrunk, so the caret (at the end of the note) ends up hidden.
+  scrollCaretIntoView(): void {
+    if (this._editor?.isFocused) this._editor.commands.scrollIntoView();
+  }
+
   private async _init(): Promise<void> {
     let loaded: Awaited<ReturnType<typeof loadTiptapExtensions>> | null;
     try {
