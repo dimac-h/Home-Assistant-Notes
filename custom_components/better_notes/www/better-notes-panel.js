@@ -1,6 +1,6 @@
-import { A, E as H, i as f, n as l, a as g, h as M, c as B, m as j, b as a, f as R, t as k, d as U, r as p, N as q, j as G, k as V, s as F, g as W, l as K, D as X, u as Y, o as J } from "./format-1mjcoacS.js";
+import { A, E as z, i as f, n as l, a as g, h as M, c as B, m as j, b as a, f as R, t as k, d as q, r as p, N as U, j as G, k as V, s as F, g as W, l as K, D as X, u as Y, o as J } from "./format-1mjcoacS.js";
 const Q = (t, e, i) => (i.configurable = !0, i.enumerable = !0, Reflect.decorate && typeof e != "object" && Object.defineProperty(t, e, i), i);
-function T(t, e) {
+function E(t, e) {
   return (i, s, o) => {
     const n = (r) => r.renderRoot?.querySelector(t) ?? null;
     return Q(i, s, { get() {
@@ -25,13 +25,13 @@ class et {
     return this.render(...i);
   }
 }
-class E extends et {
+class T extends et {
   constructor(e) {
     if (super(e), this.it = A, e.type !== Z.CHILD) throw Error(this.constructor.directiveName + "() can only be used in child bindings");
   }
   render(e) {
     if (e === A || e == null) return this._t = void 0, this.it = e;
-    if (e === H) return e;
+    if (e === z) return e;
     if (typeof e != "string") throw Error(this.constructor.directiveName + "() called with a non-string value");
     if (e === this.it) return this._t;
     this.it = e;
@@ -39,8 +39,8 @@ class E extends et {
     return i.raw = i, this._t = { _$litType$: this.constructor.resultType, strings: i, values: [] };
   }
 }
-E.directiveName = "unsafeHTML", E.resultType = 1;
-const it = tt(E);
+T.directiveName = "unsafeHTML", T.resultType = 1;
+const it = tt(T);
 var ot = Object.defineProperty, st = Object.getOwnPropertyDescriptor, N = (t, e, i, s) => {
   for (var o = s > 1 ? void 0 : s ? st(e, i) : e, n = t.length - 1, r; n >= 0; n--)
     (r = t[n]) && (o = (s ? r(e, i, o) : r(o)) || o);
@@ -187,7 +187,7 @@ let _ = class extends g {
   get _filtered() {
     const t = this.searchTerm.toLowerCase();
     return t ? this.notes.filter(
-      (e) => (e.title || "").toLowerCase().includes(t) || U(e.content || "").toLowerCase().includes(t)
+      (e) => (e.title || "").toLowerCase().includes(t) || q(e.content || "").toLowerCase().includes(t)
     ) : this.notes;
   }
   render() {
@@ -215,7 +215,7 @@ _.styles = f`
     :host { display: flex; flex-direction: column; height: 100%; background: var(--card-background-color); }
     .header {
       background: var(--card-background-color);
-      padding-block: var(--ha-space-4) var(--ha-space-3);
+      padding-block: max(var(--ha-space-4), var(--safe-area-inset-top, env(safe-area-inset-top, 0px))) var(--ha-space-3);
       padding-inline: var(--ha-space-4);
     }
     .title-row { display: flex; align-items: center; gap: var(--ha-space-2); margin-block-end: var(--ha-space-3); }
@@ -337,7 +337,7 @@ let h = class extends g {
         <ha-button size="s" appearance="plain" variant="neutral" @click=${() => this._toggleGroup("color")} @mousedown=${(t) => t.preventDefault()}>Color<span class="caret"> ▾</span></ha-button>
         <div class="dropdown">
           <div class="swatches">
-            ${q.map((t) => a`
+            ${U.map((t) => a`
               <div class="dot ${this.color === t ? "active" : ""}" style="background:${t}"
                    @click=${() => this._selectColor(t)}></div>
             `)}
@@ -455,6 +455,12 @@ let y = class extends g {
   updated(t) {
     t.has("content") && this._editor && this.content !== this._lastEmitted && (this._lastEmitted = this.content, this._editor.commands.setContent(this.content, { emitUpdate: !1 }), this._editor.commands.focus("end"));
   }
+  // Re-scrolls the caret into view if the editor has focus. Needed after the
+  // on-screen keyboard finishes opening: the autofocus scroll runs before the
+  // viewport has shrunk, so the caret (at the end of the note) ends up hidden.
+  scrollCaretIntoView() {
+    this._editor?.isFocused && this._editor.commands.scrollIntoView();
+  }
   async _init() {
     let t;
     try {
@@ -492,8 +498,8 @@ let y = class extends g {
     const n = s.node(o), r = [];
     n.forEach((m) => r.push(m));
     const u = [...r].sort((m, C) => {
-      const S = !!m.attrs.checked, z = !!C.attrs.checked;
-      return S !== z ? S ? 1 : -1 : (m.textContent || "").trim().localeCompare((C.textContent || "").trim());
+      const S = !!m.attrs.checked, H = !!C.attrs.checked;
+      return S !== H ? S ? 1 : -1 : (m.textContent || "").trim().localeCompare((C.textContent || "").trim());
     });
     if (u.every((m, C) => m === r[C])) return;
     const $ = s.before(o) + 1, I = $ + n.content.size;
@@ -646,15 +652,15 @@ P([
   l({ attribute: !1 })
 ], y.prototype, "content", 2);
 P([
-  T("#mount")
+  E("#mount")
 ], y.prototype, "_mount", 2);
 y = P([
   k("better-notes-tiptap-editor")
 ], y);
-var vt = Object.defineProperty, bt = Object.getOwnPropertyDescriptor, v = (t, e, i, s) => {
-  for (var o = s > 1 ? void 0 : s ? bt(e, i) : e, n = t.length - 1, r; n >= 0; n--)
+var bt = Object.defineProperty, vt = Object.getOwnPropertyDescriptor, b = (t, e, i, s) => {
+  for (var o = s > 1 ? void 0 : s ? vt(e, i) : e, n = t.length - 1, r; n >= 0; n--)
     (r = t[n]) && (o = (s ? r(e, i, o) : r(o)) || o);
-  return s && o && vt(e, i, o), o;
+  return s && o && bt(e, i, o), o;
 };
 function O(t) {
   if (!/data-type=["']taskList["']/.test(t)) return t;
@@ -670,7 +676,10 @@ let c = class extends g {
   constructor() {
     super(...arguments), this.note = null, this._pendingDelete = !1, this._justSaved = !1, this._displayContent = "", this._onViewportResize = () => {
       const t = window.visualViewport;
-      t && this.style.setProperty("--better-notes-visible-height", `${t.height}px`);
+      if (!t) return;
+      this.style.setProperty("--better-notes-visible-height", `${t.height}px`);
+      const e = window.innerHeight - t.height > 100;
+      this.toggleAttribute("keyboard-open", e), e && requestAnimationFrame(() => this._tiptap?.scrollCaretIntoView());
     };
   }
   connectedCallback() {
@@ -815,6 +824,8 @@ c.styles = f`
       margin: 8px 12px 12px;
       margin-bottom: calc(12px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
     }
+    /* The home-indicator inset is covered by the keyboard while it's open. */
+    :host([keyboard-open]) better-notes-toolbar { margin-bottom: 8px; }
     .title-input {
       width: 100%; font-size: 28px; font-weight: 700; border: none; outline: none; margin-bottom: 16px;
       color: var(--primary-text-color); background: transparent; font-family: inherit;
@@ -824,28 +835,28 @@ c.styles = f`
       height: 100%; color: var(--secondary-text-color);
     }
   `;
-v([
+b([
   l({ attribute: !1 })
 ], c.prototype, "note", 2);
-v([
+b([
   p()
 ], c.prototype, "_pendingDelete", 2);
-v([
+b([
   p()
 ], c.prototype, "_justSaved", 2);
-v([
-  T("better-notes-tiptap-editor")
+b([
+  E("better-notes-tiptap-editor")
 ], c.prototype, "_tiptap", 2);
-v([
-  T(".title-input")
+b([
+  E(".title-input")
 ], c.prototype, "_titleInput", 2);
-v([
+b([
   p()
 ], c.prototype, "_displayContent", 2);
-c = v([
+c = b([
   k("better-notes-editor")
 ], c);
-var mt = Object.defineProperty, _t = Object.getOwnPropertyDescriptor, b = (t, e, i, s) => {
+var mt = Object.defineProperty, _t = Object.getOwnPropertyDescriptor, v = (t, e, i, s) => {
   for (var o = s > 1 ? void 0 : s ? _t(e, i) : e, n = t.length - 1, r; n >= 0; n--)
     (r = t[n]) && (o = (s ? r(e, i, o) : r(o)) || o);
   return s && o && mt(e, i, o), o;
@@ -946,25 +957,25 @@ d.styles = f`
       :host([data-view="editor"]) .list-pane { display: none; }
     }
   `;
-b([
+v([
   l({ attribute: !1 })
 ], d.prototype, "hass", 2);
-b([
+v([
   l({ type: Boolean })
 ], d.prototype, "narrow", 2);
-b([
+v([
   p()
 ], d.prototype, "_notes", 2);
-b([
+v([
   p()
 ], d.prototype, "_selectedId", 2);
-b([
+v([
   p()
 ], d.prototype, "_searchTerm", 2);
-b([
+v([
   p()
 ], d.prototype, "_view", 2);
-d = b([
+d = v([
   k("better-notes-panel")
 ], d);
 export {

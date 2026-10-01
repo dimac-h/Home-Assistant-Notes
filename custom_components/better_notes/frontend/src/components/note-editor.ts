@@ -53,6 +53,8 @@ export class BetterNotesEditor extends LitElement {
       margin: 8px 12px 12px;
       margin-bottom: calc(12px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
     }
+    /* The home-indicator inset is covered by the keyboard while it's open. */
+    :host([keyboard-open]) better-notes-toolbar { margin-bottom: 8px; }
     .title-input {
       width: 100%; font-size: 28px; font-weight: 700; border: none; outline: none; margin-bottom: 16px;
       color: var(--primary-text-color); background: transparent; font-family: inherit;
@@ -120,6 +122,9 @@ export class BetterNotesEditor extends LitElement {
     const viewport = window.visualViewport;
     if (!viewport) return;
     this.style.setProperty('--better-notes-visible-height', `${viewport.height}px`);
+    const keyboardOpen = window.innerHeight - viewport.height > 100;
+    this.toggleAttribute('keyboard-open', keyboardOpen);
+    if (keyboardOpen) requestAnimationFrame(() => this._tiptap?.scrollCaretIntoView());
   };
 
   private _scheduleSave(): void {
