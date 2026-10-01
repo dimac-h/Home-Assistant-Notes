@@ -10,7 +10,7 @@ export class BetterNotesList extends LitElement {
     :host { display: flex; flex-direction: column; height: 100%; background: var(--card-background-color); }
     .header {
       background: var(--card-background-color);
-      padding-block: var(--ha-space-4) var(--ha-space-3);
+      padding-block: max(var(--ha-space-4), var(--safe-area-inset-top, env(safe-area-inset-top, 0px))) var(--ha-space-3);
       padding-inline: var(--ha-space-4);
     }
     .title-row { display: flex; align-items: center; gap: var(--ha-space-2); margin-block-end: var(--ha-space-3); }
