@@ -33,6 +33,7 @@ export class BetterNotesEditor extends LitElement {
       display: flex; flex-direction: column; height: var(--better-notes-visible-height, 100%);
       background: var(--card-background-color);
       min-width: 0; min-height: 0; position: relative;
+      transform: translateY(var(--better-notes-offset-top, 0px));
     }
     .header {
       padding: 12px 16px; border-bottom: 1px solid var(--divider-color); display: flex; align-items: center; gap: 10px;
@@ -53,6 +54,10 @@ export class BetterNotesEditor extends LitElement {
       margin: 8px 12px 12px;
       margin-bottom: calc(12px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
     }
+    /* The home-indicator inset is covered by the keyboard while it's open. */
+    :host([keyboard-open]) better-notes-toolbar { margin-bottom: 8px; }
+    /* Same when Safari's own bottom bar sits over the inset instead of the keyboard. */
+    :host([browser-bar]) better-notes-toolbar { margin-bottom: 12px; }
     .title-input {
       width: 100%; font-size: 28px; font-weight: 700; border: none; outline: none; margin-bottom: 16px;
       color: var(--primary-text-color); background: transparent; font-family: inherit;
@@ -88,6 +93,7 @@ export class BetterNotesEditor extends LitElement {
   connectedCallback(): void {
     super.connectedCallback();
     window.visualViewport?.addEventListener('resize', this._onViewportResize);
+    window.visualViewport?.addEventListener('scroll', this._onViewportResize);
     this._onViewportResize();
   }
 
@@ -109,6 +115,7 @@ export class BetterNotesEditor extends LitElement {
     clearTimeout(this._deleteTimeout);
     clearTimeout(this._toastTimeout);
     window.visualViewport?.removeEventListener('resize', this._onViewportResize);
+    window.visualViewport?.removeEventListener('scroll', this._onViewportResize);
   }
 
   // Mobile browsers keep the layout viewport full-height when the on-screen keyboard
@@ -120,6 +127,18 @@ export class BetterNotesEditor extends LitElement {
     const viewport = window.visualViewport;
     if (!viewport) return;
     this.style.setProperty('--better-notes-visible-height', `${viewport.height}px`);
+    const keyboardOpen = window.innerHeight - viewport.height > 100;
+    this.toggleAttribute('keyboard-open', keyboardOpen);
+    // In a Safari tab the page ends above the browser's bottom bar, which already
+    // covers the home-indicator inset; only a full-height viewport needs our margin.
+    this.toggleAttribute('browser-bar', !keyboardOpen && viewport.offsetTop + viewport.height < window.screen.height - 20);
+    // iOS also pans the visual viewport down within the layout viewport to reveal the
+    // focused field, which would leave the shell (and its header) scrolled off-screen
+    // above a blank area. While the keyboard is open, follow the pan so the shell stays
+    // pinned to what's visible. Once it closes iOS leaves the page scrolled, so reset it.
+    this.style.setProperty('--better-notes-offset-top', keyboardOpen ? `${viewport.offsetTop}px` : '0px');
+    if (!keyboardOpen && (window.scrollY || viewport.offsetTop)) window.scrollTo(0, 0);
+    if (keyboardOpen) requestAnimationFrame(() => this._tiptap?.scrollCaretIntoView());
   };
 
   private _scheduleSave(): void {
