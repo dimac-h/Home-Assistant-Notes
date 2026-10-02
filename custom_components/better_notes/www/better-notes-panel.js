@@ -1,4 +1,4 @@
-import { A, E as H, i as g, n as l, a as _, h as M, c as B, m as R, b as a, f as j, t as w, d as V, r as p, N as q, j as U, k as G, s as F, g as W, l as Y, D as K, u as X, o as J } from "./format-1mjcoacS.js";
+import { A, E as H, i as _, n as l, a as g, h as M, c as B, m as R, b as a, f as j, t as w, d as V, r as p, N as q, j as U, k as G, s as F, g as W, l as K, D as Y, u as X, o as J } from "./format-1mjcoacS.js";
 const Q = (t, e, i) => (i.configurable = !0, i.enumerable = !0, Reflect.decorate && typeof e != "object" && Object.defineProperty(t, e, i), i);
 function E(t, e) {
   return (i, s, o) => {
@@ -98,7 +98,7 @@ function nt(t) {
     !i.textContent?.trim() && !i.querySelector("input") && i.remove();
   }), e.body.innerHTML;
 }
-let x = class extends _ {
+let x = class extends g {
   constructor() {
     super(...arguments), this.active = !1, this._select = () => {
       this.dispatchEvent(new CustomEvent("note-select", {
@@ -131,7 +131,7 @@ let x = class extends _ {
     `;
   }
 };
-x.styles = g`
+x.styles = _`
     :host { display: block; cursor: pointer; margin-block-end: var(--ha-space-2); }
     .card {
       border-radius: 6px;
@@ -173,7 +173,7 @@ var at = Object.defineProperty, lt = Object.getOwnPropertyDescriptor, L = (t, e,
     (n = t[r]) && (o = (s ? n(e, i, o) : n(o)) || o);
   return s && o && at(e, i, o), o;
 };
-let f = class extends _ {
+let f = class extends g {
   constructor() {
     super(...arguments), this.notes = [], this.selectedNoteId = null, this.searchTerm = "";
   }
@@ -211,7 +211,7 @@ let f = class extends _ {
     `;
   }
 };
-f.styles = g`
+f.styles = _`
     :host { display: flex; flex-direction: column; height: 100%; background: var(--card-background-color); }
     .header {
       background: var(--card-background-color);
@@ -266,7 +266,7 @@ var ct = Object.defineProperty, dt = Object.getOwnPropertyDescriptor, k = (t, e,
     (n = t[r]) && (o = (s ? n(e, i, o) : n(o)) || o);
   return s && o && ct(e, i, o), o;
 };
-let h = class extends _ {
+let h = class extends g {
   constructor() {
     super(...arguments), this.pinned = !1, this.color = "", this.linkHref = "", this._openGroup = null, this._linkOpen = !1;
   }
@@ -363,7 +363,7 @@ let h = class extends _ {
     `;
   }
 };
-h.styles = g`
+h.styles = _`
     :host {
       display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 8px 12px;
       background: var(--card-background-color); border: 1px solid var(--divider-color);
@@ -444,7 +444,7 @@ var ht = Object.defineProperty, ut = Object.getOwnPropertyDescriptor, P = (t, e,
     (n = t[r]) && (o = (s ? n(e, i, o) : n(o)) || o);
   return s && o && ht(e, i, o), o;
 };
-let y = class extends _ {
+let y = class extends g {
   constructor() {
     super(...arguments), this.content = "", this._editor = null, this._fallback = !1, this._lastEmitted = "";
   }
@@ -591,21 +591,21 @@ let y = class extends _ {
       ></textarea>` : a`<div id="mount" @keydown=${(t) => t.stopPropagation()}></div>`;
   }
 };
-y.styles = g`
-    :host { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+y.styles = _`
+    :host { display: flex; flex-direction: column; flex: 1 0 auto; }
     .fallback {
       width: 100%; min-height: 300px; font-size: 15px; line-height: 1.6;
       border: none; outline: none; resize: none; color: var(--primary-text-color);
       background: transparent; font-family: inherit;
     }
-    #mount { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    #mount { flex: 1 0 auto; display: flex; flex-direction: column; }
     .ProseMirror,
     .ProseMirror:focus,
     .ProseMirror:focus-visible {
       outline: none;
     }
     .ProseMirror {
-      flex: 1; min-height: 100%; cursor: text; overflow-wrap: anywhere;
+      flex: 1 0 auto; min-height: 100%; cursor: text; overflow-wrap: anywhere;
     }
     .ProseMirror ul[data-type="taskList"] {
       list-style: none;
@@ -674,7 +674,7 @@ function O(t) {
     }).forEach((r) => i.appendChild(r));
   }), e.body.innerHTML;
 }
-let c = class extends _ {
+let c = class extends g {
   constructor() {
     super(...arguments), this.note = null, this._pendingDelete = !1, this._justSaved = !1, this._displayContent = "", this._onViewportResize = () => {
       const t = window.visualViewport;
@@ -801,12 +801,12 @@ let c = class extends _ {
     ` : a`<div class="empty">Select a note or create one</div>`;
   }
 };
-c.styles = g`
+c.styles = _`
     :host {
       display: flex; flex-direction: column; height: var(--better-notes-visible-height, 100%);
       background: var(--card-background-color);
       min-width: 0; min-height: 0; position: relative;
-      transform: translateY(var(--better-notes-offset-top, 0px));
+      top: var(--better-notes-offset-top, 0px);
     }
     .header {
       padding: 12px 16px; border-bottom: 1px solid var(--divider-color); display: flex; align-items: center; gap: 10px;
@@ -821,7 +821,7 @@ c.styles = g`
       flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column;
       padding: 20px 24px 40px;
     }
-    better-notes-tiptap-editor { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    better-notes-tiptap-editor { flex: 1 0 auto; display: flex; flex-direction: column; }
     better-notes-toolbar {
       flex-shrink: 0;
       margin: 8px 12px 12px;
@@ -866,10 +866,10 @@ var mt = Object.defineProperty, ft = Object.getOwnPropertyDescriptor, v = (t, e,
     (n = t[r]) && (o = (s ? n(e, i, o) : n(o)) || o);
   return s && o && mt(e, i, o), o;
 };
-function gt(t) {
+function _t(t) {
   return [...t].sort((e, i) => e.pinned !== i.pinned ? e.pinned ? -1 : 1 : new Date(i.modified).getTime() - new Date(e.modified).getTime());
 }
-let d = class extends _ {
+let d = class extends g {
   constructor() {
     super(...arguments), this.narrow = !1, this._notes = [], this._selectedId = null, this._searchTerm = "", this._view = "list", this._creatingNote = !1, this._pushedEditorState = !1, this._onPopState = () => {
       this._pushedEditorState && (this._pushedEditorState = !1, this._view = "list");
@@ -894,7 +894,7 @@ let d = class extends _ {
     await this._loadNotes(), this._unsubscribe = await F(this.hass, () => this._loadNotes());
   }
   async _loadNotes() {
-    this._notes = gt(await W(this.hass));
+    this._notes = _t(await W(this.hass));
   }
   get _selectedNote() {
     return this._notes.find((t) => t.note_id === this._selectedId) ?? null;
@@ -903,7 +903,7 @@ let d = class extends _ {
     if (!this._creatingNote) {
       this._creatingNote = !0;
       try {
-        const t = await Y(this.hass, { title: "New Note", content: "", color: K, pinned: !1 });
+        const t = await K(this.hass, { title: "New Note", content: "", color: Y, pinned: !1 });
         await this._loadNotes(), t && this._enterEditor(t);
       } finally {
         this._creatingNote = !1;
@@ -950,7 +950,7 @@ let d = class extends _ {
     `;
   }
 };
-d.styles = g`
+d.styles = _`
     :host { display: block; height: 100%; }
     .layout { display: flex; height: 100%; background: var(--card-background-color); overflow: hidden; }
     .list-pane { flex-shrink: 0; border-inline-end: 1px solid var(--divider-color); }

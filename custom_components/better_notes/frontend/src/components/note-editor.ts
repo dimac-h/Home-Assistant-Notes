@@ -33,7 +33,7 @@ export class BetterNotesEditor extends LitElement {
       display: flex; flex-direction: column; height: var(--better-notes-visible-height, 100%);
       background: var(--card-background-color);
       min-width: 0; min-height: 0; position: relative;
-      transform: translateY(var(--better-notes-offset-top, 0px));
+      top: var(--better-notes-offset-top, 0px);
     }
     .header {
       padding: 12px 16px; border-bottom: 1px solid var(--divider-color); display: flex; align-items: center; gap: 10px;
@@ -48,7 +48,7 @@ export class BetterNotesEditor extends LitElement {
       flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column;
       padding: 20px 24px 40px;
     }
-    better-notes-tiptap-editor { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    better-notes-tiptap-editor { flex: 1 0 auto; display: flex; flex-direction: column; }
     better-notes-toolbar {
       flex-shrink: 0;
       margin: 8px 12px 12px;
