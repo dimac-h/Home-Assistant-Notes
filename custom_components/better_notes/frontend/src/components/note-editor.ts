@@ -58,9 +58,15 @@ export class BetterNotesEditor extends LitElement {
     :host([keyboard-open]) better-notes-toolbar { margin-bottom: 8px; }
     /* Same when Safari's own bottom bar sits over the inset instead of the keyboard. */
     :host([browser-bar]) better-notes-toolbar { margin-bottom: 12px; }
+    /* A textarea (auto-grown to its content) rather than an input so long titles
+       wrap instead of scrolling sideways; padding/appearance are reset because
+       iOS adds its own inset to form controls. */
     .title-input {
-      width: 100%; font-size: 28px; font-weight: 700; border: none; outline: none; margin-bottom: 16px;
-      color: var(--primary-text-color); background: transparent; font-family: inherit;
+      display: block; flex-shrink: 0; width: 100%; box-sizing: border-box; margin: 0 0 16px; padding: 0;
+      font-size: 28px; font-weight: 700; line-height: 1.25; font-family: inherit;
+      border: none; border-radius: 0; outline: none; resize: none; overflow: hidden;
+      -webkit-appearance: none; appearance: none;
+      color: var(--primary-text-color); background: transparent;
     }
     .empty {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -74,7 +80,7 @@ export class BetterNotesEditor extends LitElement {
   @state() private _justSaved = false;
 
   @query('better-notes-tiptap-editor') private _tiptap?: BetterNotesTiptapEditor;
-  @query('.title-input') private _titleInput?: HTMLInputElement;
+  @query('.title-input') private _titleInput?: HTMLTextAreaElement;
 
   private _saveTimeout?: ReturnType<typeof setTimeout>;
   private _deleteTimeout?: ReturnType<typeof setTimeout>;
@@ -140,6 +146,30 @@ export class BetterNotesEditor extends LitElement {
     if (!keyboardOpen && (window.scrollY || viewport.offsetTop)) window.scrollTo(0, 0);
     if (keyboardOpen) requestAnimationFrame(() => this._tiptap?.scrollCaretIntoView());
   };
+
+  // Titles are single-line: Enter is ignored and pasted line breaks become spaces.
+  private _onTitleKeydown = (e: KeyboardEvent): void => {
+    e.stopPropagation();
+    if (e.key === 'Enter') e.preventDefault();
+  };
+
+  private _onTitleInput = (): void => {
+    const title = this._titleInput;
+    if (title && title.value.includes('\n')) title.value = title.value.replace(/\s*\n\s*/g, ' ');
+    this._fitTitle();
+    this._scheduleSave();
+  };
+
+  private _fitTitle(): void {
+    const title = this._titleInput;
+    if (!title) return;
+    title.style.height = 'auto';
+    title.style.height = `${title.scrollHeight}px`;
+  }
+
+  updated(): void {
+    this._fitTitle();
+  }
 
   private _scheduleSave(): void {
     clearTimeout(this._saveTimeout);
@@ -237,14 +267,14 @@ export class BetterNotesEditor extends LitElement {
         </div>
       </div>
       <div class="body">
-        <input
+        <textarea
           class="title-input"
-          type="text"
+          rows="1"
           placeholder="Note Title"
           .value=${this.note.title || ''}
-          @input=${() => this._scheduleSave()}
-          @keydown=${(e: KeyboardEvent) => e.stopPropagation()}
-        >
+          @input=${this._onTitleInput}
+          @keydown=${this._onTitleKeydown}
+        ></textarea>
         <better-notes-tiptap-editor
           .content=${this._displayContent}
           @content-changed=${() => this._scheduleSave()}
