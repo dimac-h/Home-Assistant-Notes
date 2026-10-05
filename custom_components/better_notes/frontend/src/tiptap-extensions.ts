@@ -1,3 +1,5 @@
+import { Selection } from '@tiptap/pm/state';
+
 // Adding a new Tiptap extension: `npm install @tiptap/extension-X` in
 // frontend/, then add it to the Promise.all below and to the returned
 // extensions array. That's the whole surface area — tiptap-editor.ts
@@ -22,7 +24,34 @@ export async function loadTiptapExtensions() {
       // ProseMirror climbs up through every ancestor list to find a place
       // it IS valid, collapsing all nested indentation in the process.
       StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, listItem: false, hardBreak: false }),
-      ListItem.extend({ content: '(paragraph|heading) block*' }),
+      ListItem.extend({
+        content: '(paragraph|heading) block*',
+        priority: 1000,
+        addKeyboardShortcuts() {
+          return {
+            ...this.parent?.(),
+            // Backspace in an empty item that has a sibling after it deletes the
+            // item outright. The default lifts it out of the list, which splits
+            // the list in two and restarts the numbering of the second half at 1.
+            // The last item keeps the default so Backspace can still leave a list.
+            Backspace: ({ editor }) => {
+              const { selection } = editor.state;
+              const { $from } = selection;
+              if (!selection.empty || $from.parentOffset !== 0 || $from.parent.content.size !== 0) return false;
+              const itemDepth = $from.depth - 1;
+              if (itemDepth < 1 || $from.node(itemDepth).type.name !== this.name) return false;
+              const item = $from.node(itemDepth);
+              const list = $from.node(itemDepth - 1);
+              if (item.childCount !== 1 || $from.index(itemDepth - 1) >= list.childCount - 1) return false;
+              const start = $from.before(itemDepth);
+              return editor.chain().deleteRange({ from: start, to: start + item.nodeSize }).command(({ tr }) => {
+                tr.setSelection(Selection.near(tr.doc.resolve(start), -1));
+                return true;
+              }).run();
+            },
+          };
+        },
+      }),
       TaskList,
       TaskItem.configure({ nested: true }),
       Link.configure({ openOnClick: true }),
