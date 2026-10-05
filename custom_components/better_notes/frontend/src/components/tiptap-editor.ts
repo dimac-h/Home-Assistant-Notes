@@ -1,5 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property, query } from 'lit/decorators.js';
+import { NodeSelection, TextSelection } from '@tiptap/pm/state';
 import { loadTiptapExtensions } from '../tiptap-extensions';
 
 export type ToolbarAction =
@@ -127,32 +128,50 @@ export class BetterNotesTiptapEditor extends LitElement {
       onUpdate: () => this._emitChanged(),
     });
     this._lastEmitted = this._editor.getHTML();
-    // Bubble-phase listener on the mount, not the checkbox itself: TaskItem's
-    // own nodeView attaches a 'change' listener directly on the <input> that
-    // updates the node's `checked` attr, so by the time this fires (further
-    // up the bubble path) that attribute update has already landed in the
-    // editor state and we're reordering the post-toggle list.
+    // Capture-phase listener on the mount, ahead of TaskItem's own 'change'
+    // handler on the <input>: that handler calls editor.focus(), which with the
+    // keyboard closed focuses the editor, restores its stored caret (often the
+    // end of the note), opens the keyboard and scrolls there. We stop it and do
+    // the toggle ourselves, together with the reorder, in one transaction that
+    // never touches focus or scroll.
     this._mount?.addEventListener('change', (e) => {
       const target = e.target as HTMLElement;
       if (target instanceof HTMLInputElement && target.type === 'checkbox' && target.closest('ul[data-type="taskList"]')) {
-        this._reorderTaskList(target);
+        e.stopPropagation();
+        this._toggleTaskItem(target);
       }
-    });
+    }, true);
   }
 
-  // Keeps a checklist tidy after a check/uncheck: unchecked items on top,
-  // checked items below, each group sorted alphabetically. Only runs on
+  // Applies a checkbox toggle and keeps the checklist tidy: unchecked items on
+  // top, checked items below, each group sorted alphabetically. Only runs on
   // checkbox toggle (not on every keystroke) so typing a new item doesn't
   // jump around the list while the user is still writing it.
-  private _reorderTaskList(checkbox: HTMLInputElement): void {
+  private _toggleTaskItem(checkbox: HTMLInputElement): void {
     const view = this._editor?.view;
     const li = checkbox.closest('li');
     if (!view || !li) return;
+    // The browser already flipped the checkbox. Undo that so the DOM still
+    // matches the (not yet updated) document: ProseMirror reuses DOM rows for
+    // identical sibling nodes (e.g. several "Kajaks" items) without calling the
+    // node view's update(), so a row left natively toggled would keep showing
+    // the wrong state after the reorder.
+    const checked = checkbox.checked;
+    checkbox.checked = !checked;
     const $pos = view.state.doc.resolve(view.posAtDOM(li, 0));
     let depth = $pos.depth;
     while (depth > 0 && $pos.node(depth).type.name !== 'taskList') depth--;
     if ($pos.node(depth).type.name !== 'taskList') return;
-    const listNode = $pos.node(depth);
+    const listStart = $pos.before(depth) + 1;
+    let itemPos = -1;
+    $pos.node(depth).forEach((child: any, offset: number) => {
+      if (view.nodeDOM(listStart + offset) === li) itemPos = listStart + offset;
+    });
+    if (itemPos < 0) return;
+
+    const tr = view.state.tr;
+    tr.setNodeMarkup(itemPos, undefined, { ...tr.doc.nodeAt(itemPos)!.attrs, checked });
+    const listNode = tr.doc.nodeAt(listStart - 1)!;
     const items: any[] = [];
     listNode.forEach((child: any) => items.push(child));
     const sorted = [...items].sort((a, b) => {
@@ -161,10 +180,33 @@ export class BetterNotesTiptapEditor extends LitElement {
       if (aChecked !== bChecked) return aChecked ? 1 : -1;
       return (a.textContent || '').trim().localeCompare((b.textContent || '').trim());
     });
-    if (sorted.every((item, i) => item === items[i])) return;
-    const from = $pos.before(depth) + 1;
-    const to = from + listNode.content.size;
-    view.dispatch(view.state.tr.replaceWith(from, to, sorted));
+    if (sorted.some((item, i) => item !== items[i])) {
+      const to = listStart + listNode.content.size;
+      const selection = tr.selection;
+      const { from: selFrom, to: selTo } = selection;
+      tr.replaceWith(listStart, to, sorted);
+      // replaceWith collapses a selection inside the list to its end, so re-anchor
+      // it to the same spot inside the item it was in.
+      if (selFrom >= listStart && selTo <= to) {
+        let oldStart = listStart;
+        for (const item of items) {
+          const end = oldStart + item.nodeSize;
+          if (selFrom < end) {
+            let newStart = listStart;
+            for (const s of sorted) { if (s === item) break; newStart += s.nodeSize; }
+            const delta = newStart - oldStart;
+            const a = selFrom + delta;
+            const b = Math.min(selTo + delta, newStart + item.nodeSize);
+            tr.setSelection(selection instanceof NodeSelection
+              ? NodeSelection.create(tr.doc, a)
+              : TextSelection.between(tr.doc.resolve(a), tr.doc.resolve(b)));
+            break;
+          }
+          oldStart = end;
+        }
+      }
+    }
+    view.dispatch(tr);
   }
 
   private _emitChanged(): void {
