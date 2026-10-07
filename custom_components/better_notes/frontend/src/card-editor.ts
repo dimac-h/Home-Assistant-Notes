@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import type { BetterNotesCardConfig } from './card';
+import { DEFAULT_MAX_NOTES } from './card-defaults';
 
 @customElement('better-notes-card-editor')
 export class BetterNotesCardEditor extends LitElement {
@@ -30,8 +31,8 @@ export class BetterNotesCardEditor extends LitElement {
       </div>
       <div class="option">
         <label for="max_notes">Max Notes to Display</label>
-        <ha-input id="max_notes" type="number" ?disabled=${!!this._config.show_all} min="1" max="20" .value=${String(this._config.max_notes ?? 5)}
-          @input=${(e: Event) => this._update({ max_notes: parseInt((e.target as HTMLInputElement).value, 10) || 5 })}></ha-input>
+        <ha-input id="max_notes" type="number" ?disabled=${!!this._config.show_all} min="1" max="20" .value=${String(this._config.max_notes ?? DEFAULT_MAX_NOTES)}
+          @input=${(e: Event) => this._update({ max_notes: parseInt((e.target as HTMLInputElement).value, 10) || DEFAULT_MAX_NOTES })}></ha-input>
       </div>
       <div class="option">
         <ha-formfield label="Show Pinned Notes Only">
