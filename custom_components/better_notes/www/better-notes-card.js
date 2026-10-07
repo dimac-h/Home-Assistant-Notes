@@ -1,8 +1,8 @@
-import { i as _, r as h, a as f, b as s, t as g, n as v, g as p, s as w, c as u, m as x, d as y, f as $, e as N } from "./format-1mjcoacS.js";
-var E = Object.defineProperty, C = Object.getOwnPropertyDescriptor, m = (t, e, i, n) => {
-  for (var o = n > 1 ? void 0 : n ? C(e, i) : e, a = t.length - 1, r; a >= 0; a--)
-    (r = t[a]) && (o = (n ? r(e, i, o) : r(o)) || o);
-  return n && o && E(e, i, o), o;
+import { i as u, r as h, a as f, b as n, t as g, n as v, g as p, s as w, c as _, m as x, d as y, f as $, e as N } from "./format-1mjcoacS.js";
+var E = Object.defineProperty, C = Object.getOwnPropertyDescriptor, m = (t, e, i, s) => {
+  for (var o = s > 1 ? void 0 : s ? C(e, i) : e, a = t.length - 1, r; a >= 0; a--)
+    (r = t[a]) && (o = (s ? r(e, i, o) : r(o)) || o);
+  return s && o && E(e, i, o), o;
 };
 let c = class extends f {
   constructor() {
@@ -15,7 +15,7 @@ let c = class extends f {
     this._config = { ...this._config, ...t }, this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: this._config }, bubbles: !0, composed: !0 }));
   }
   render() {
-    return s`
+    return n`
       <div class="option">
         <label for="title">Title</label>
         <ha-input id="title" .value=${this._config.title ?? "Notes"}
@@ -23,7 +23,7 @@ let c = class extends f {
       </div>
       <div class="option">
         <label for="max_notes">Max Notes to Display</label>
-        <ha-input id="max_notes" type="number" min="1" max="20" .value=${String(this._config.max_notes ?? 5)}
+        <ha-input id="max_notes" type="number" ?disabled=${!!this._config.show_all} min="1" max="20" .value=${String(this._config.max_notes ?? 5)}
           @input=${(t) => this._update({ max_notes: parseInt(t.target.value, 10) || 5 })}></ha-input>
       </div>
       <div class="option">
@@ -51,7 +51,7 @@ let c = class extends f {
     `;
   }
 };
-c.styles = _`
+c.styles = u`
     .option { margin-bottom: 16px; }
     label { display: block; margin-bottom: 4px; font-weight: 500; }
     ha-input { width: 100%; }
@@ -62,10 +62,10 @@ m([
 c = m([
   g("better-notes-card-editor")
 ], c);
-var A = Object.defineProperty, O = Object.getOwnPropertyDescriptor, d = (t, e, i, n) => {
-  for (var o = n > 1 ? void 0 : n ? O(e, i) : e, a = t.length - 1, r; a >= 0; a--)
-    (r = t[a]) && (o = (n ? r(e, i, o) : r(o)) || o);
-  return n && o && A(e, i, o), o;
+var A = Object.defineProperty, O = Object.getOwnPropertyDescriptor, d = (t, e, i, s) => {
+  for (var o = s > 1 ? void 0 : s ? O(e, i) : e, a = t.length - 1, r; a >= 0; a--)
+    (r = t[a]) && (o = (s ? r(e, i, o) : r(o)) || o);
+  return s && o && A(e, i, o), o;
 };
 const S = /* @__PURE__ */ new Set([
   "p",
@@ -111,9 +111,9 @@ function b(t) {
     o?.removeChild(e);
     return;
   }
-  const n = P[i] || [];
+  const s = P[i] || [];
   if (Array.from(e.attributes).forEach((o) => {
-    !n.includes(o.name) && o.name !== "data-type" && o.name !== "data-checked" && e.removeAttribute(o.name);
+    !s.includes(o.name) && o.name !== "data-type" && o.name !== "data-checked" && e.removeAttribute(o.name);
   }), i === "a") {
     const o = e.getAttribute("href") || "";
     T.test(o) || e.removeAttribute("href"), e.setAttribute("rel", "noopener noreferrer");
@@ -152,48 +152,48 @@ let l = class extends f {
     });
   }
   getCardSize() {
-    return this._config.note_id ? 3 : Math.min(this._config.max_notes ?? 5, this._notes.length) + 1;
+    return this._config.note_id ? 3 : (this._config.show_all ? this._notes.length : Math.min(this._config.max_notes ?? 5, this._notes.length)) + 1;
   }
   static getConfigElement() {
     return document.createElement("better-notes-card-editor");
   }
   static getStubConfig() {
-    return { type: "custom:better-notes-card", title: "Notes", show_all: !0, max_notes: 5, show_pinned_only: !1 };
+    return { type: "custom:better-notes-card", title: "Notes", show_all: !1, max_notes: 5, show_pinned_only: !1 };
   }
   _openPanel() {
     window.history.pushState(null, "", "/better-notes"), window.dispatchEvent(new Event("location-changed", { bubbles: !0, composed: !0 }));
   }
   _renderNote(t, e) {
-    return s`
-      <div class="note" style="--note-color:${u(t.color)}" @click=${() => this._openPanel()}>
+    return n`
+      <div class="note" style="--note-color:${_(t.color)}" @click=${() => this._openPanel()}>
         <div class="note-title">
           <span>${t.title || "Untitled"}</span>
-          ${t.pinned ? s`<ha-svg-icon .path=${x}></ha-svg-icon>` : ""}
+          ${t.pinned ? n`<ha-svg-icon .path=${x}></ha-svg-icon>` : ""}
         </div>
-        ${e ? s`<div class="note-content" .innerHTML=${k(t.content || "")}></div>` : s`<div class="note-content">${(() => {
+        ${e ? n`<div class="note-content" .innerHTML=${k(t.content || "")}></div>` : n`<div class="note-content">${(() => {
       const i = y(t.content || "");
       return i.length > 150 ? `${i.slice(0, 150)}…` : i;
     })()}</div>`}
-        ${t.tags?.length ? s`<div class="tags">${t.tags.map((i) => s`<span class="tag">${i}</span>`)}</div>` : ""}
+        ${t.tags?.length ? n`<div class="tags">${t.tags.map((i) => n`<span class="tag">${i}</span>`)}</div>` : ""}
         <div class="note-meta">${$(t.modified)}</div>
       </div>
     `;
   }
   render() {
-    const t = this._config.card_color ? `background:${u(this._config.card_color)}` : "";
+    const t = this._config.card_color ? `background:${_(this._config.card_color)}` : "";
     let e;
     if (this._config.note_id) {
-      const i = this._notes.find((n) => n.note_id === this._config.note_id);
-      e = i ? this._renderNote(i, !0) : s`<div class="empty">Note not found</div>`;
+      const i = this._notes.find((s) => s.note_id === this._config.note_id);
+      e = i ? this._renderNote(i, !0) : n`<div class="empty">Note not found</div>`;
     } else {
       let i = this._config.show_pinned_only ? this._notes.filter((a) => a.pinned) : this._notes;
-      const n = i.length, o = this._config.max_notes ?? 5;
-      this._config.show_all || (i = i.slice(0, o)), e = i.length === 0 ? s`<div class="empty">No notes to display</div>` : s`
+      const s = i.length, o = this._config.max_notes ?? 5;
+      this._config.show_all || (i = i.slice(0, o)), e = i.length === 0 ? n`<div class="empty">No notes to display</div>` : n`
             ${i.map((a) => this._renderNote(a, !1))}
-            ${n > o ? s`<ha-button size="s" appearance="plain" variant="neutral" @click=${() => this._openPanel()}>View All Notes</ha-button>` : ""}
+            ${!this._config.show_all && s > o ? n`<ha-button size="s" appearance="plain" variant="neutral" @click=${() => this._openPanel()}>View All Notes</ha-button>` : ""}
           `;
     }
-    return s`
+    return n`
       <ha-card style=${t}>
         <div class="header">
           <ha-svg-icon .path=${N}></ha-svg-icon>
@@ -204,7 +204,7 @@ let l = class extends f {
     `;
   }
 };
-l.styles = _`
+l.styles = u`
     :host { display: block; }
     ha-card { padding: 16px; }
     .header {
