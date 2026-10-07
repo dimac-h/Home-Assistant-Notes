@@ -12,11 +12,19 @@ from custom_components.better_notes.__init__ import (
     DELETE_NOTE_SCHEMA,
     UPDATE_NOTE_SCHEMA,
 )
-from custom_components.better_notes.const import DOMAIN
+from custom_components.better_notes.const import CARD_MODULE_URL, DOMAIN
 
 if TYPE_CHECKING:
+    from unittest.mock import MagicMock
+
     from homeassistant.core import HomeAssistant
     from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+
+async def test_setup_loads_card_module(
+    hass: HomeAssistant, setup_integration: MockConfigEntry, add_extra_js_url_mock: MagicMock
+) -> None:
+    add_extra_js_url_mock.assert_called_once_with(hass, CARD_MODULE_URL)
 
 
 async def test_setup_registers_all_services(hass: HomeAssistant, setup_integration: MockConfigEntry) -> None:
