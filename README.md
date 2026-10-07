@@ -1,6 +1,9 @@
 # Home Assistant Notes
 
-A notes panel for Home Assistant with rich text editing, dark mode support, and Lovelace card integration.
+**Home Assistant Notes** is an Apple Notes-style notepad for Home Assistant: a full-page sidebar panel with a rich text editor, checklists, colored sticky notes, and a Lovelace card to show notes on any dashboard. Use it for shopping lists, household notes, or reminders the whole family can see, without leaving Home Assistant. Works on desktop, phone, and wall tablets, in light and dark mode.
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=dimac-h&repository=Home-Assistant-Notes&category=integration)
+[![Add Integration to your Home Assistant instance.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=home_assistant_notes)
 
 <table>
 <tr>
@@ -52,6 +55,25 @@ Go to **Settings → Devices & Services → Add Integration** and search for *Ho
 | **🎨▾** | Note color                                             |
 | **📌**  | Pin / unpin                                            |
 | **🔗**  | Insert / remove link                                   |
+## Use cases
+
+- **Shared shopping list**: a checklist note on the kitchen tablet dashboard that everyone can tick off.
+- **Household notes**: Wi-Fi password, bin collection days, the plumber's number, pinned to the top.
+- **Wall-tablet sticky notes**: color-coded notes via the Lovelace card, always visible on the dashboard.
+- **Automation-driven notes**: create or update notes from automations with the `home_assistant_notes.create_note` and `home_assistant_notes.update_note` services.
+
+## FAQ
+
+**Where are my notes stored?** Locally in your Home Assistant `.storage` folder (`home_assistant_notes.notes`). Notes are included in the regular Home Assistant backups.
+
+**Do notes sync between devices?** Yes. Every device opening the panel or card reads from the same Home Assistant storage, so it works across phones, tablets, and desktops.
+
+**Can I show a note on a dashboard?** Yes, add the `custom:home-assistant-notes-card` card to any view.
+
+**Which Home Assistant version do I need?** 2026.8.2 or newer.
+
+**Can I use notes in automations?** Yes. The `create_note`, `update_note`, `delete_note`, and `get_notes` services are available in the Actions picker and in YAML.
+
 ## Troubleshooting
 
 **Panel not in sidebar** — disable and re-enable the integration in Settings → Devices & Services, then hard-refresh the browser.
@@ -61,3 +83,5 @@ Go to **Settings → Devices & Services → Add Integration** and search for *Ho
 ## License
 
 MIT — contributions are welcome via [pull request](https://github.com/dimac-h/Home-Assistant-Notes/pulls).
+
+If Home Assistant Notes is useful to you, please consider giving it a ⭐ on GitHub. It helps other Home Assistant users find it. Questions and ideas are welcome in [Discussions](https://github.com/dimac-h/Home-Assistant-Notes/discussions).
