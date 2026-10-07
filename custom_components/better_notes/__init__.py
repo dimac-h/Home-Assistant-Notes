@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import voluptuous as vol
 
-from homeassistant.components.frontend import async_remove_panel
+from homeassistant.components.frontend import add_extra_js_url, async_remove_panel
 from homeassistant.components.panel_custom import async_register_panel
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
@@ -13,6 +13,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 
 from .const import (
+    CARD_MODULE_URL,
     DOMAIN,
     SERVICE_CREATE_NOTE,
     SERVICE_UPDATE_NOTE,
@@ -79,6 +80,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
         ])
         _REGISTERED_STATIC_PATHS.add("/better_notes_panel")
+
+    # Load the Lovelace card on every dashboard so it shows up in the card picker
+    # without users having to add a dashboard resource by hand
+    add_extra_js_url(hass, CARD_MODULE_URL)
 
     await async_register_panel(
         hass,

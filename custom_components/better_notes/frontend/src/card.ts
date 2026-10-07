@@ -2,6 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { mdiNoteMultipleOutline, mdiPin } from '@mdi/js';
 import './card-editor';
+import { DEFAULT_MAX_NOTES, HEADER_CARD_SIZE, SINGLE_NOTE_CARD_SIZE } from './card-defaults';
 import { getNotes, subscribeNoteEvents } from './api';
 import type { Note } from './api';
 import { safeColor } from './colors';
@@ -101,7 +102,7 @@ export class BetterNotesCard extends LitElement {
   setConfig(config: BetterNotesCardConfig): void {
     if (!config) throw new Error('Invalid configuration');
     this._config = {
-      title: 'Notes', note_id: null, show_all: false, max_notes: 5, show_pinned_only: false, card_color: null,
+      title: 'Notes', note_id: null, show_all: false, max_notes: DEFAULT_MAX_NOTES, show_pinned_only: false, card_color: null,
       ...config,
     };
   }
@@ -124,7 +125,9 @@ export class BetterNotesCard extends LitElement {
   }
 
   getCardSize(): number {
-    return this._config.note_id ? 3 : Math.min(this._config.max_notes ?? 5, this._notes.length) + 1;
+    if (this._config.note_id) return SINGLE_NOTE_CARD_SIZE;
+    const shown = this._config.show_all ? this._notes.length : Math.min(this._config.max_notes ?? DEFAULT_MAX_NOTES, this._notes.length);
+    return shown + HEADER_CARD_SIZE;
   }
 
   static getConfigElement(): HTMLElement {
@@ -132,7 +135,7 @@ export class BetterNotesCard extends LitElement {
   }
 
   static getStubConfig(): BetterNotesCardConfig {
-    return { type: 'custom:better-notes-card', title: 'Notes', show_all: true, max_notes: 5, show_pinned_only: false };
+    return { type: 'custom:better-notes-card', title: 'Notes', show_all: false, max_notes: DEFAULT_MAX_NOTES, show_pinned_only: false };
   }
 
   private _openPanel(): void {
@@ -168,13 +171,13 @@ export class BetterNotesCard extends LitElement {
     } else {
       let notes = this._config.show_pinned_only ? this._notes.filter(n => n.pinned) : this._notes;
       const total = notes.length;
-      const maxNotes = this._config.max_notes ?? 5;
+      const maxNotes = this._config.max_notes ?? DEFAULT_MAX_NOTES;
       if (!this._config.show_all) notes = notes.slice(0, maxNotes);
       content = notes.length === 0
         ? html`<div class="empty">No notes to display</div>`
         : html`
             ${notes.map(n => this._renderNote(n, false))}
-            ${total > maxNotes ? html`<ha-button size="s" appearance="plain" variant="neutral" @click=${() => this._openPanel()}>View All Notes</ha-button>` : ''}
+            ${!this._config.show_all && total > maxNotes ? html`<ha-button size="s" appearance="plain" variant="neutral" @click=${() => this._openPanel()}>View All Notes</ha-button>` : ''}
           `;
     }
     return html`

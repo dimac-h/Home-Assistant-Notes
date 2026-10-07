@@ -40,3 +40,6 @@ PANEL_TITLE = "Home Assistant Notes"
 PANEL_ICON = "mdi:note-multiple"
 PANEL_URL = "better-notes"
 PANEL_COMPONENT_NAME = "better-notes-panel"
+
+# Lovelace card module, served from the same static path as the panel
+CARD_MODULE_URL = "/better_notes_panel/better-notes-card.js"

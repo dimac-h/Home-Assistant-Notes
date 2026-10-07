@@ -3,7 +3,7 @@
   "name": "Home Assistant Notes",
   "codeowners": ["@dimac-h"],
   "config_flow": true,
-  "dependencies": ["http"],
+  "dependencies": ["frontend", "http"],
   "documentation": "https://github.com/dimac-h/Home-Assistant-Notes",
   "integration_type": "service",
   "iot_class": "local_push",
