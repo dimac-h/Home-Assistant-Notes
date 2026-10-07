@@ -1,0 +1,45 @@
+name: Bug report
+description: Something in Home Assistant Notes isn't working
+labels: [bug]
+body:
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+      placeholder: "2026.8.2"
+    validations:
+      required: true
+  - type: input
+    id: integration_version
+    attributes:
+      label: Home Assistant Notes version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where does it happen?
+      options: [Sidebar panel, Lovelace card, Services / automations, Other]
+    validations:
+      required: true
+  - type: dropdown
+    id: device
+    attributes:
+      label: Device and browser
+      options: [Desktop, iOS / Safari, Android / Chrome, Home Assistant Companion app, Wall tablet, Other]
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or browser console errors
+      render: text
