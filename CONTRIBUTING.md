@@ -47,14 +47,19 @@ Feature suggestions are welcome! Please:
    cd Home-Assistant-Notes
    ```
 
-2. Create a symbolic link in your Home Assistant config directory:
+2. Build the frontend (the build output is not committed):
+   ```bash
+   cd custom_components/home_assistant_notes/frontend && npm ci && npm run build && cd ../../..
+   ```
+
+3. Create a symbolic link in your Home Assistant config directory:
    ```bash
    ln -s $(pwd)/custom_components/home_assistant_notes ~/.homeassistant/custom_components/home_assistant_notes
    ```
 
-3. Restart Home Assistant
+4. Restart Home Assistant
 
-4. Check logs for any errors:
+5. Check logs for any errors:
    ```bash
    tail -f ~/.homeassistant/home-assistant.log | grep home_assistant_notes
    ```
@@ -93,7 +98,8 @@ custom_components/home_assistant_notes/
 ├── storage.py           # Storage logic
 ├── config_flow.py       # Configuration
 ├── services.yaml        # Service definitions
-├── www/                 # Frontend code
+├── frontend/            # Frontend source (TypeScript + Lit)
+├── www/                 # Built frontend (git-ignored, produced by `npm run build`)
 └── translations/        # UI translations
 ```
 

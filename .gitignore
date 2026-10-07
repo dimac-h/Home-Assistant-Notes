@@ -53,3 +53,7 @@ dev/config/
 
 # Local planning docs (specs/plans) - not part of repo content
 docs/
+
+# Frontend build output (produced by `npm run build`, shipped in release zips)
+custom_components/home_assistant_notes/www/*
+!custom_components/home_assistant_notes/www/.gitkeep

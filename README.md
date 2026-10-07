@@ -37,7 +37,7 @@ Or click the button below (requires [My Home Assistant](https://www.home-assista
 
 ### Manual
 
-Copy the `custom_components/home_assistant_notes` folder into your HA `custom_components` directory and restart.
+Download `home_assistant_notes.zip` from the [latest release](https://github.com/dimac-h/Home-Assistant-Notes/releases/latest), unzip it into `custom_components/home_assistant_notes` in your HA config directory, and restart. (Copying the folder straight from the repository won't work: the built frontend is only included in release zips.)
 
 ### Setup
 
