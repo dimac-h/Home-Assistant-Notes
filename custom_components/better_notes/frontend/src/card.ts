@@ -124,7 +124,9 @@ export class BetterNotesCard extends LitElement {
   }
 
   getCardSize(): number {
-    return this._config.note_id ? 3 : Math.min(this._config.max_notes ?? 5, this._notes.length) + 1;
+    if (this._config.note_id) return 3;
+    const shown = this._config.show_all ? this._notes.length : Math.min(this._config.max_notes ?? 5, this._notes.length);
+    return shown + 1;
   }
 
   static getConfigElement(): HTMLElement {
@@ -132,7 +134,7 @@ export class BetterNotesCard extends LitElement {
   }
 
   static getStubConfig(): BetterNotesCardConfig {
-    return { type: 'custom:better-notes-card', title: 'Notes', show_all: true, max_notes: 5, show_pinned_only: false };
+    return { type: 'custom:better-notes-card', title: 'Notes', show_all: false, max_notes: 5, show_pinned_only: false };
   }
 
   private _openPanel(): void {
@@ -174,7 +176,7 @@ export class BetterNotesCard extends LitElement {
         ? html`<div class="empty">No notes to display</div>`
         : html`
             ${notes.map(n => this._renderNote(n, false))}
-            ${total > maxNotes ? html`<ha-button size="s" appearance="plain" variant="neutral" @click=${() => this._openPanel()}>View All Notes</ha-button>` : ''}
+            ${!this._config.show_all && total > maxNotes ? html`<ha-button size="s" appearance="plain" variant="neutral" @click=${() => this._openPanel()}>View All Notes</ha-button>` : ''}
           `;
     }
     return html`
