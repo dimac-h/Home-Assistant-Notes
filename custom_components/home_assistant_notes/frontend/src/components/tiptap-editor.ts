@@ -26,6 +26,7 @@ export class HomeAssistantNotesTiptapEditor extends LitElement {
     }
     .ProseMirror {
       flex: 1 0 auto; min-height: 100%; cursor: text; overflow-wrap: anywhere;
+      white-space: pre-wrap;
     }
     .ProseMirror ul[data-type="taskList"] {
       list-style: none;

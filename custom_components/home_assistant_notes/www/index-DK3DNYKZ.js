@@ -1,5 +1,5 @@
-import { N as T, r as O, m as I, w as g, s as J, u as z, E, v as A, x as Y, y as Q, z as tt, A as et, B as nt } from "./index-83TcH1XJ.js";
-import { P as st, F as x, T as rt } from "./panel-Dwwj8BWx.js";
+import { N as T, r as O, m as I, w as g, s as J, u as z, E, v as A, x as Y, y as Q, z as tt, A as et, B as nt } from "./index-Dp42AKx8.js";
+import { P as st, F as x, T as rt } from "./panel-DF9aJwg8.js";
 const it = "listItem", D = "textStyle", P = /^\s*([-+*])\s$/, ot = T.create({
   name: "bulletList",
   addOptions() {

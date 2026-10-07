@@ -5576,13 +5576,13 @@ class Hi {
 }
 async function Ti() {
   const [{ Editor: r }, { StarterKit: t }, { TaskList: e }, { TaskItem: n }, { Link: i }, { Highlight: s }, { ListItem: o }] = await Promise.all([
-    import("./index-83TcH1XJ.js").then((l) => l.C),
-    import("./index-BKF-fqB2.js"),
-    import("./index-Cy5ib30R.js"),
-    import("./index-2FRnEwM_.js"),
-    import("./index-CrOtPYpL.js"),
-    import("./index-B2HysJK3.js"),
-    import("./index-COanOeZn.js")
+    import("./index-Dp42AKx8.js").then((l) => l.C),
+    import("./index-CAMVVKsQ.js"),
+    import("./index-kmfw1PVQ.js"),
+    import("./index-CzQ0hSRj.js"),
+    import("./index-C2qmsAxW.js"),
+    import("./index-DLxjoV-M.js"),
+    import("./index-CpR83U35.js")
   ]);
   return {
     Editor: r,
@@ -5818,6 +5818,7 @@ dt.styles = Q`
     }
     .ProseMirror {
       flex: 1 0 auto; min-height: 100%; cursor: text; overflow-wrap: anywhere;
+      white-space: pre-wrap;
     }
     .ProseMirror ul[data-type="taskList"] {
       list-style: none;
