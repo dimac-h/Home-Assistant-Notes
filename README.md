@@ -34,13 +34,13 @@ Or click the button below (requires [My Home Assistant](https://www.home-assista
 
 ### Manual
 
-Copy the `custom_components/better_notes` folder into your HA `custom_components` directory and restart.
+Copy the `custom_components/home_assistant_notes` folder into your HA `custom_components` directory and restart.
 
 ### Setup
 
 Go to **Settings → Devices & Services → Add Integration** and search for *Home Assistant Notes*, or click the shortcut button below. The panel appears in the sidebar automatically.
 
-[![Add Integration to your Home Assistant instance.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=better_notes)
+[![Add Integration to your Home Assistant instance.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=home_assistant_notes)
 
 ## Formatting toolbar
 
@@ -56,7 +56,7 @@ Go to **Settings → Devices & Services → Add Integration** and search for *Ho
 
 **Panel not in sidebar** — disable and re-enable the integration in Settings → Devices & Services, then hard-refresh the browser.
 
-**Card is not loading** — check the browser console for errors. The card type is `custom:better-notes-card`.
+**Card is not loading** — check the browser console for errors. The card type is `custom:home-assistant-notes-card`.
 
 ## License
 

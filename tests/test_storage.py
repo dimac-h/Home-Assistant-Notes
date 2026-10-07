@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from custom_components.better_notes.storage import NotesStorage
+from custom_components.home_assistant_notes.storage import NotesStorage
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -117,7 +117,7 @@ async def test_sort_after_update_moves_note_up(storage: NotesStorage) -> None:
 async def test_newest_note_is_at_index_zero(storage: NotesStorage) -> None:
     """After create, async_get_all_notes()[0] is the most recently modified note.
 
-    This validates the _createNote fallback in better-notes-panel.js:
+    This validates the _createNote fallback in home-assistant-notes-panel.js:
     the panel falls back to this._notes[0] when the timestamp-based lookup
     fails — which must be the newest note, not this._notes[last]. Even though
     this integration's frontend has since moved on from that vanilla-JS panel,

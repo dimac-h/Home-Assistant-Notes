@@ -8,7 +8,7 @@ import pytest
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry, mock_component
 
-from custom_components.better_notes.const import DOMAIN
+from custom_components.home_assistant_notes.const import DOMAIN
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -31,14 +31,14 @@ def mock_frontend_component(hass: HomeAssistant) -> None:
 @pytest.fixture
 def add_extra_js_url_mock() -> MagicMock:
     """Stub the frontend's extra-module registry (the frontend package isn't installed in tests)."""
-    with patch("custom_components.better_notes.add_extra_js_url") as mock:
+    with patch("custom_components.home_assistant_notes.add_extra_js_url") as mock:
         yield mock
 
 
 @pytest.fixture
 async def setup_integration(hass: HomeAssistant, add_extra_js_url_mock: MagicMock) -> MockConfigEntry:
-    """Set up the better_notes integration with a fresh store."""
-    # better_notes registers a static path on hass.http during setup, which
+    """Set up the home_assistant_notes integration with a fresh store."""
+    # home_assistant_notes registers a static path on hass.http during setup, which
     # is None until the "http" component itself has been set up.
     await async_setup_component(hass, "http", {})
     entry = MockConfigEntry(domain=DOMAIN)

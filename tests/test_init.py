@@ -7,12 +7,12 @@ import pytest
 import voluptuous as vol
 from homeassistant.exceptions import HomeAssistantError
 
-from custom_components.better_notes.__init__ import (
+from custom_components.home_assistant_notes.__init__ import (
     CREATE_NOTE_SCHEMA,
     DELETE_NOTE_SCHEMA,
     UPDATE_NOTE_SCHEMA,
 )
-from custom_components.better_notes.const import CARD_MODULE_URL, DOMAIN
+from custom_components.home_assistant_notes.const import CARD_MODULE_URL, DOMAIN
 
 if TYPE_CHECKING:
     from unittest.mock import MagicMock
