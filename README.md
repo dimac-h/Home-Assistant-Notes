@@ -3,7 +3,7 @@
 **Home Assistant Notes** is an Apple Notes-style notepad for Home Assistant: a full-page sidebar panel with a rich text editor, checklists, colored sticky notes, and a Lovelace card to show notes on any dashboard. Use it for shopping lists, household notes, or reminders the whole family can see, without leaving Home Assistant. Works on desktop, phone, and wall tablets, in light and dark mode.
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=dimac-h&repository=Home-Assistant-Notes&category=integration)
-[![Add Integration to your Home Assistant instance.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=better_notes)
+[![Add Integration to your Home Assistant instance.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=home_assistant_notes)
 
 <table>
 <tr>
@@ -37,13 +37,13 @@ Or click the button below (requires [My Home Assistant](https://www.home-assista
 
 ### Manual
 
-Copy the `custom_components/better_notes` folder into your HA `custom_components` directory and restart.
+Copy the `custom_components/home_assistant_notes` folder into your HA `custom_components` directory and restart.
 
 ### Setup
 
 Go to **Settings → Devices & Services → Add Integration** and search for *Home Assistant Notes*, or click the shortcut button below. The panel appears in the sidebar automatically.
 
-[![Add Integration to your Home Assistant instance.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=better_notes)
+[![Add Integration to your Home Assistant instance.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=home_assistant_notes)
 
 ## Formatting toolbar
 
@@ -60,15 +60,15 @@ Go to **Settings → Devices & Services → Add Integration** and search for *Ho
 - **Shared shopping list**: a checklist note on the kitchen tablet dashboard that everyone can tick off.
 - **Household notes**: Wi-Fi password, bin collection days, the plumber's number, pinned to the top.
 - **Wall-tablet sticky notes**: color-coded notes via the Lovelace card, always visible on the dashboard.
-- **Automation-driven notes**: create or update notes from automations with the `better_notes.create_note` and `better_notes.update_note` services.
+- **Automation-driven notes**: create or update notes from automations with the `home_assistant_notes.create_note` and `home_assistant_notes.update_note` services.
 
 ## FAQ
 
-**Where are my notes stored?** Locally in your Home Assistant `.storage` folder (`better_notes.notes`). Notes are included in the regular Home Assistant backups.
+**Where are my notes stored?** Locally in your Home Assistant `.storage` folder (`home_assistant_notes.notes`). Notes are included in the regular Home Assistant backups.
 
 **Do notes sync between devices?** Yes. Every device opening the panel or card reads from the same Home Assistant storage, so it works across phones, tablets, and desktops.
 
-**Can I show a note on a dashboard?** Yes, add the `custom:better-notes-card` card to any view.
+**Can I show a note on a dashboard?** Yes, add the `custom:home-assistant-notes-card` card to any view.
 
 **Which Home Assistant version do I need?** 2026.8.2 or newer.
 
@@ -78,7 +78,7 @@ Go to **Settings → Devices & Services → Add Integration** and search for *Ho
 
 **Panel not in sidebar** — disable and re-enable the integration in Settings → Devices & Services, then hard-refresh the browser.
 
-**Card is not loading** — check the browser console for errors. The card type is `custom:better-notes-card`.
+**Card is not loading** — check the browser console for errors. The card type is `custom:home-assistant-notes-card`.
 
 ## License
 
