@@ -57,14 +57,14 @@ Go to **Settings → Devices & Services → Add Integration** and search for *Ho
 | **🔗**  | Insert / remove link                                   |
 ## Use cases
 
-- **Shared shopping list** — a checklist note on the kitchen tablet dashboard that everyone can tick off.
-- **Household notes** — Wi-Fi password, bin collection days, the plumber's number, pinned to the top.
-- **Wall-tablet sticky notes** — color-coded notes via the Lovelace card, always visible on the dashboard.
-- **Automation-driven notes** — create or update notes from automations with the `better_notes.create_note` and `better_notes.update_note` services.
+- **Shared shopping list**: a checklist note on the kitchen tablet dashboard that everyone can tick off.
+- **Household notes**: Wi-Fi password, bin collection days, the plumber's number, pinned to the top.
+- **Wall-tablet sticky notes**: color-coded notes via the Lovelace card, always visible on the dashboard.
+- **Automation-driven notes**: create or update notes from automations with the `better_notes.create_note` and `better_notes.update_note` services.
 
 ## FAQ
 
-**Where are my notes stored?** Locally in your Home Assistant `.storage` folder (`better_notes.notes`). Nothing leaves your instance, and notes are included in normal Home Assistant backups.
+**Where are my notes stored?** Locally in your Home Assistant `.storage` folder (`better_notes.notes`). Notes are included in the regular Home Assistant backups.
 
 **Do notes sync between devices?** Yes. Every device opening the panel or card reads from the same Home Assistant storage, so it works across phones, tablets, and desktops.
 
