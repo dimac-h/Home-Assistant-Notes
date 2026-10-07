@@ -10,7 +10,7 @@ Adapted from `home-assistant/frontend`'s own `AGENTS.md` and `.agents/skills/ha-
 third-party custom integration's frontend (this repo does not build HA core itself, so core-repo-only guidance
 like `yarn lint`/`yarn dev`, the PR template, and the AI policy section are omitted).
 
-Use this skill before touching any `ha-*` component usage or styling in `custom_components/better_notes/frontend/`.
+Use this skill before touching any `ha-*` component usage or styling in `custom_components/home_assistant_notes/frontend/`.
 
 ## Buttons
 
