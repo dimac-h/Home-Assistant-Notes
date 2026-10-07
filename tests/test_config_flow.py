@@ -7,7 +7,7 @@ from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.better_notes.const import DOMAIN
+from custom_components.home_assistant_notes.const import DOMAIN
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant

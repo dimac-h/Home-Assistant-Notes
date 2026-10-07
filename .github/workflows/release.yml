@@ -19,10 +19,10 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: custom_components/better_notes/frontend/package-lock.json
+          cache-dependency-path: custom_components/home_assistant_notes/frontend/package-lock.json
 
       - name: Build frontend
-        working-directory: custom_components/better_notes/frontend
+        working-directory: custom_components/home_assistant_notes/frontend
         run: |
           npm ci
           npm run build
@@ -34,9 +34,9 @@ jobs:
 
       - name: Patch manifest and zip
         run: |
-          sed -i -E 's/"version": "[^"]*"/"version": "${{ steps.version.outputs.version }}"/' custom_components/better_notes/manifest.json
-          cd custom_components/better_notes/
-          zip ../../better_notes.zip -r ./ \
+          sed -i -E 's/"version": "[^"]*"/"version": "${{ steps.version.outputs.version }}"/' custom_components/home_assistant_notes/manifest.json
+          cd custom_components/home_assistant_notes/
+          zip ../../home_assistant_notes.zip -r ./ \
             -x 'frontend/node_modules/*' \
             -x 'frontend/src/*' \
             -x 'frontend/package.json' \
@@ -49,4 +49,4 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: |
-            better_notes.zip
+            home_assistant_notes.zip

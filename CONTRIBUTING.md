@@ -49,14 +49,14 @@ Feature suggestions are welcome! Please:
 
 2. Create a symbolic link in your Home Assistant config directory:
    ```bash
-   ln -s $(pwd)/custom_components/better_notes ~/.homeassistant/custom_components/better_notes
+   ln -s $(pwd)/custom_components/home_assistant_notes ~/.homeassistant/custom_components/home_assistant_notes
    ```
 
 3. Restart Home Assistant
 
 4. Check logs for any errors:
    ```bash
-   tail -f ~/.homeassistant/home-assistant.log | grep better_notes
+   tail -f ~/.homeassistant/home-assistant.log | grep home_assistant_notes
    ```
 
 ### Testing
@@ -87,7 +87,7 @@ Before submitting a PR, please:
 ### File Organization
 
 ```
-custom_components/better_notes/
+custom_components/home_assistant_notes/
 ├── __init__.py          # Integration setup
 ├── const.py             # Constants only
 ├── storage.py           # Storage logic
