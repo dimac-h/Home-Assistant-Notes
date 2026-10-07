@@ -13,7 +13,7 @@ Backend-only changes (`__init__.py`, `storage.py`, `config_flow.py`, `const.py`)
 Frontend changes (`custom_components/home_assistant_notes/frontend/src/`) need a build first:
 ```bash
 cd custom_components/home_assistant_notes/frontend
-npm run build   # outputs to frontend/dist/, copy the built *.js into ../www/
+npm ci && npm run build   # writes straight into ../www/ (git-ignored build output)
 ```
 
 Local testing uses a disposable, bind-mounted HA instance instead of copying files into a real install:
@@ -28,7 +28,7 @@ rm -rf dev/config                                    # full reset
 
 ## Releasing
 
-Publishing a GitHub Release triggers `.github/workflows/release.yml`, which builds `frontend/`, patches `manifest.json`'s version, zips `custom_components/home_assistant_notes/`, and uploads the zip as a release asset. `hacs.json` sets `"zip_release": true` so HACS installs from that built asset rather than raw repo content — the frontend build output must exist in what HACS installs, and committing it to git isn't required (unlike `tiptap-bundle.js`, which is committed since it's not part of the Vite build).
+Publishing a GitHub Release triggers `.github/workflows/release.yml`, which builds `frontend/`, patches `manifest.json`'s version, zips `custom_components/home_assistant_notes/`, and uploads the zip as a release asset. `hacs.json` sets `"zip_release": true` so HACS installs from that built asset rather than raw repo content — the build output (`www/`) is git-ignored and exists only in the release zip. A fresh clone needs `npm ci && npm run build` before the dev instance shows the panel; `www/.gitkeep` keeps the directory present so the integration still loads without a build.
 
 ## Architecture
 
@@ -41,7 +41,6 @@ Publishing a GitHub Release triggers `.github/workflows/release.yml`, which buil
 **Frontend** — TypeScript + LitElement, built with Vite (`custom_components/home_assistant_notes/frontend/`), using HA's own native elements and theme tokens (`ha-card`, `ha-dialog`, `ha-button`, `ha-input`, etc.) rather than a custom design system:
 - `frontend/src/panel.ts` — full-page notes UI, built to `www/home-assistant-notes-panel.js` and served as a sidebar panel
 - `frontend/src/card.ts` — custom Lovelace card (`custom:home-assistant-notes-card`), built to `www/home-assistant-notes-card.js`
-- `www/tiptap-bundle.js` — pre-built rich-text editor, checked into git as-is (not part of the Vite build), wrapped by a Lit component for the note body editor
 
 The panel communicates with HA backend by calling HA services via the HA WebSocket API / REST API from the browser.
 
