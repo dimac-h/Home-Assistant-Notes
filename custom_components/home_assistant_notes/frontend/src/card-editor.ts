@@ -12,6 +12,10 @@ export class HomeAssistantNotesCardEditor extends LitElement {
     .option { margin-bottom: 16px; }
     label { display: block; margin-bottom: 4px; font-weight: 500; }
     ha-input { width: 100%; }
+    /* The note picker renders as an md-list-item whose headline defaults to 1rem
+       (HA also bumps --ha-font-size-m to 16px on mobile) — pin it to the 14px
+       body size used by the rest of the editor. */
+    ha-form { --md-list-item-label-text-size: calc(14px * var(--ha-font-size-scale, 1)); }
   `;
 
   @property({ attribute: false }) hass!: HomeAssistant;
@@ -51,13 +55,13 @@ export class HomeAssistantNotesCardEditor extends LitElement {
       </div>
       <div class="option">
         <ha-formfield label="Show Pinned Notes Only">
-          <ha-checkbox .checked=${!!this._config.show_pinned_only}
+          <ha-checkbox .checked=${!!this._config.show_pinned_only} ?disabled=${!!this._config.note_id}
             @change=${(e: Event) => this._update({ show_pinned_only: (e.target as HTMLInputElement).checked })}></ha-checkbox>
         </ha-formfield>
       </div>
       <div class="option">
         <ha-formfield label="Show All Notes">
-          <ha-checkbox .checked=${!!this._config.show_all}
+          <ha-checkbox .checked=${!!this._config.show_all} ?disabled=${!!this._config.note_id}
             @change=${(e: Event) => this._update({ show_all: (e.target as HTMLInputElement).checked })}></ha-checkbox>
         </ha-formfield>
       </div>

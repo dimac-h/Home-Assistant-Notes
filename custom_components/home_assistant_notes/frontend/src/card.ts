@@ -97,6 +97,15 @@ export class HomeAssistantNotesCard extends LitElement {
       display: flex; align-items: center; justify-content: space-between;
     }
     .note-content { font-size: 14px; color: rgba(0,0,0,0.6); line-height: 1.5; word-wrap: break-word; }
+    .note-content p, .note-content li { margin: 0; }
+    .note-content ul, .note-content ol { margin: 0; padding-inline-start: 1.1em; }
+    /* TipTap task lists: <li><label><input></label><div><p>text</p></div></li> —
+       checkbox beside the text, text wrapping within its own column. */
+    .note-content ul[data-type='taskList'] { list-style: none; padding-inline-start: 0; }
+    .note-content ul[data-type='taskList'] li { display: flex; align-items: flex-start; gap: var(--ha-space-2); }
+    .note-content ul[data-type='taskList'] li > label { flex-shrink: 0; display: flex; align-items: center; min-height: 1.5em; }
+    .note-content ul[data-type='taskList'] li > div { flex: 1; min-width: 0; }
+    .note-content input[type='checkbox'] { margin: 0; }
     .note-meta { margin-top: 8px; font-size: 12px; color: rgba(0,0,0,0.5); }
     .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
     .tag { background: rgba(0,0,0,0.1); padding: 2px 8px; border-radius: 12px; font-size: 11px; color: rgba(0,0,0,0.7); }
