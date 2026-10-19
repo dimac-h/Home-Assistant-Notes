@@ -1,12 +1,13 @@
 import { LitElement, html, css } from 'lit';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { customElement, property, state } from 'lit/decorators.js';
 import { mdiNoteMultipleOutline, mdiPin } from '@mdi/js';
 import './card-editor';
-import './components/note-list-item';
 import { DEFAULT_MAX_NOTES, HEADER_CARD_SIZE, SINGLE_NOTE_CARD_SIZE } from './card-defaults';
 import { getNotes, subscribeNoteEvents } from './api';
 import type { Note } from './api';
-import { safeColor } from './colors';
+import { safeColor, getNoteTextColor } from './colors';
+import { notePreviewHtml, notePreviewStyles } from './note-preview';
 import { formatRelativeDate } from './format';
 import type { HomeAssistant } from './ha-types';
 
@@ -70,8 +71,17 @@ export interface HomeAssistantNotesCardConfig {
 
 @customElement('home-assistant-notes-card')
 export class HomeAssistantNotesCard extends LitElement {
-  static styles = css`
+  static styles = [notePreviewStyles, css`
     :host { display: block; }
+    .list-note { border-radius: 6px; padding: var(--ha-space-3); margin-block-end: var(--ha-space-2); cursor: pointer; }
+    .list-note:hover { box-shadow: var(--ha-box-shadow-s, 0 2px 6px rgba(0, 0, 0, 0.15)); }
+    .list-header { display: flex; align-items: center; gap: var(--ha-space-2); margin-block-end: 4px; }
+    .list-title {
+      font-size: 15px; line-height: 1.3; font-weight: 600; color: var(--note-text);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
+    }
+    .list-note .date { font-size: 12px; line-height: 1.3; color: var(--note-text-muted); }
+    .list-note ha-svg-icon { --mdc-icon-size: 14px; color: var(--note-text-muted); flex-shrink: 0; }
     ha-card { padding: 16px; }
     .header {
       font-size: 18px; font-weight: 600; margin-bottom: 16px; color: var(--primary-text-color);
@@ -92,13 +102,14 @@ export class HomeAssistantNotesCard extends LitElement {
     .tag { background: rgba(0,0,0,0.1); padding: 2px 8px; border-radius: 12px; font-size: 11px; color: rgba(0,0,0,0.7); }
     .empty { text-align: center; padding: 32px; color: var(--secondary-text-color); }
     ha-button { width: 100%; margin-top: 12px; }
-  `;
+  `];
 
   @property({ attribute: false }) hass!: HomeAssistant;
   @state() private _config: HomeAssistantNotesCardConfig = { type: 'custom:home-assistant-notes-card' };
   @state() private _notes: Note[] = [];
 
   private _unsubscribe?: () => void;
+  private _initializing = false;
 
   setConfig(config: HomeAssistantNotesCardConfig): void {
     if (!config) throw new Error('Invalid configuration');
@@ -109,7 +120,7 @@ export class HomeAssistantNotesCard extends LitElement {
   }
 
   updated(changed: Map<string, unknown>): void {
-    if (changed.has('hass') && this.hass && !this._unsubscribe) this._init();
+    if (changed.has('hass') && this.hass && !this._unsubscribe && !this._initializing) this._init();
   }
 
   disconnectedCallback(): void {
@@ -119,10 +130,17 @@ export class HomeAssistantNotesCard extends LitElement {
   }
 
   private async _init(): Promise<void> {
-    this._notes = await getNotes(this.hass);
-    this._unsubscribe = await subscribeNoteEvents(this.hass, async () => {
+    this._initializing = true;
+    try {
       this._notes = await getNotes(this.hass);
-    });
+      const unsubscribe = await subscribeNoteEvents(this.hass, async () => {
+        this._notes = await getNotes(this.hass);
+      });
+      if (this.isConnected) this._unsubscribe = unsubscribe;
+      else unsubscribe(); // removed from the DOM while subscribing
+    } finally {
+      this._initializing = false;
+    }
   }
 
   getCardSize(): number {
@@ -159,8 +177,22 @@ export class HomeAssistantNotesCard extends LitElement {
     `;
   }
 
-  private _onNoteSelect(e: CustomEvent<{ noteId: string }>): void {
-    this._openPanel(e.detail.noteId);
+  private _renderListNote(note: Note) {
+    const { title, muted } = getNoteTextColor(note.color);
+    return html`
+      <div
+        class="list-note"
+        style="background:${safeColor(note.color)}; --note-text:${title}; --note-text-muted:${muted}"
+        @click=${() => this._openPanel(note.note_id)}
+      >
+        <div class="list-header">
+          <div class="list-title">${note.title || 'Untitled'}</div>
+          ${note.pinned ? html`<ha-svg-icon .path=${mdiPin}></ha-svg-icon>` : ''}
+        </div>
+        <div class="preview">${unsafeHTML(notePreviewHtml(note.content || ''))}</div>
+        <div class="date">${formatRelativeDate(note.modified)}</div>
+      </div>
+    `;
   }
 
   render() {
@@ -177,7 +209,7 @@ export class HomeAssistantNotesCard extends LitElement {
       content = notes.length === 0
         ? html`<div class="empty">No notes to display</div>`
         : html`
-            ${notes.map(n => html`<home-assistant-notes-list-item .note=${n} @note-select=${this._onNoteSelect}></home-assistant-notes-list-item>`)}
+            ${notes.map(n => this._renderListNote(n))}
             ${!this._config.show_all && total > maxNotes ? html`<ha-button size="s" appearance="plain" variant="neutral" @click=${() => this._openPanel()}>View All Notes</ha-button>` : ''}
           `;
     }

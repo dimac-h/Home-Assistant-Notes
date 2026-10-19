@@ -45,7 +45,8 @@ export class HomeAssistantNotesCardEditor extends LitElement {
       </div>
       <div class="option">
         <label for="max_notes">Max Notes to Display</label>
-        <ha-input id="max_notes" type="number" ?disabled=${!!this._config.show_all} min="1" max="20" .value=${String(this._config.max_notes ?? DEFAULT_MAX_NOTES)}
+        <ha-input id="max_notes" type="number" ?disabled=${!!this._config.show_all || !!this._config.note_id} min="1" max="20"
+          .value=${this._config.note_id ? '1' : String(this._config.max_notes ?? DEFAULT_MAX_NOTES)}
           @input=${(e: Event) => this._update({ max_notes: parseInt((e.target as HTMLInputElement).value, 10) || DEFAULT_MAX_NOTES })}></ha-input>
       </div>
       <div class="option">

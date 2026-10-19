@@ -50,6 +50,10 @@ export async function deleteNote(hass: HomeAssistant, noteId: string): Promise<v
 export function subscribeNoteEvents(hass: HomeAssistant, onEvent: () => void): Promise<() => void> {
   const events = ['home_assistant_notes_note_created', 'home_assistant_notes_note_updated', 'home_assistant_notes_note_deleted'];
   return Promise.all(events.map(e => hass.connection.subscribeEvents(onEvent, e))).then(
-    unsubs => () => unsubs.forEach(fn => fn()),
+    unsubs => () => unsubs.forEach(fn => {
+      // HA rejects with "Subscription not found" if the socket reconnected (or the
+      // subscription was already dropped) before we unsubscribe — nothing to clean up then.
+      try { Promise.resolve(fn()).catch(() => {}); } catch { /* already gone */ }
+    }),
   );
 }
