@@ -2,11 +2,12 @@ import { LitElement, html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { mdiNoteMultipleOutline, mdiPin } from '@mdi/js';
 import './card-editor';
+import './components/note-list-item';
 import { DEFAULT_MAX_NOTES, HEADER_CARD_SIZE, SINGLE_NOTE_CARD_SIZE } from './card-defaults';
 import { getNotes, subscribeNoteEvents } from './api';
 import type { Note } from './api';
 import { safeColor } from './colors';
-import { formatRelativeDate, stripHtml } from './format';
+import { formatRelativeDate } from './format';
 import type { HomeAssistant } from './ha-types';
 
 // Ported verbatim from the current www/home-assistant-notes-card.js _sanitizeHtml —
@@ -138,28 +139,28 @@ export class HomeAssistantNotesCard extends LitElement {
     return { type: 'custom:home-assistant-notes-card', title: 'Notes', show_all: false, max_notes: DEFAULT_MAX_NOTES, show_pinned_only: false };
   }
 
-  private _openPanel(): void {
-    window.history.pushState(null, '', '/home-assistant-notes');
+  private _openPanel(noteId?: string): void {
+    const query = noteId ? `?note=${encodeURIComponent(noteId)}` : '';
+    window.history.pushState(null, '', `/home-assistant-notes${query}`);
     window.dispatchEvent(new Event('location-changed', { bubbles: true, composed: true }));
   }
 
-  private _renderNote(note: Note, isSingle: boolean) {
+  private _renderSingleNote(note: Note) {
     return html`
-      <div class="note" style="--note-color:${safeColor(note.color)}" @click=${() => this._openPanel()}>
+      <div class="note" style="--note-color:${safeColor(note.color)}" @click=${() => this._openPanel(note.note_id)}>
         <div class="note-title">
           <span>${note.title || 'Untitled'}</span>
           ${note.pinned ? html`<ha-svg-icon .path=${mdiPin}></ha-svg-icon>` : ''}
         </div>
-        ${isSingle
-          ? html`<div class="note-content" .innerHTML=${sanitizeNoteHtml(note.content || '')}></div>`
-          : html`<div class="note-content">${(() => {
-              const plain = stripHtml(note.content || '');
-              return plain.length > 150 ? `${plain.slice(0, 150)}…` : plain;
-            })()}</div>`}
+        <div class="note-content" .innerHTML=${sanitizeNoteHtml(note.content || '')}></div>
         ${note.tags?.length ? html`<div class="tags">${note.tags.map(t => html`<span class="tag">${t}</span>`)}</div>` : ''}
         <div class="note-meta">${formatRelativeDate(note.modified)}</div>
       </div>
     `;
+  }
+
+  private _onNoteSelect(e: CustomEvent<{ noteId: string }>): void {
+    this._openPanel(e.detail.noteId);
   }
 
   render() {
@@ -167,7 +168,7 @@ export class HomeAssistantNotesCard extends LitElement {
     let content;
     if (this._config.note_id) {
       const note = this._notes.find(n => n.note_id === this._config.note_id);
-      content = note ? this._renderNote(note, true) : html`<div class="empty">Note not found</div>`;
+      content = note ? this._renderSingleNote(note) : html`<div class="empty">Note not found</div>`;
     } else {
       let notes = this._config.show_pinned_only ? this._notes.filter(n => n.pinned) : this._notes;
       const total = notes.length;
@@ -176,7 +177,7 @@ export class HomeAssistantNotesCard extends LitElement {
       content = notes.length === 0
         ? html`<div class="empty">No notes to display</div>`
         : html`
-            ${notes.map(n => this._renderNote(n, false))}
+            ${notes.map(n => html`<home-assistant-notes-list-item .note=${n} @note-select=${this._onNoteSelect}></home-assistant-notes-list-item>`)}
             ${!this._config.show_all && total > maxNotes ? html`<ha-button size="s" appearance="plain" variant="neutral" @click=${() => this._openPanel()}>View All Notes</ha-button>` : ''}
           `;
     }
