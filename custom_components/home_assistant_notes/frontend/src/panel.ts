@@ -45,6 +45,7 @@ export class HomeAssistantNotesPanel extends LitElement {
     super.connectedCallback();
     if (this.hass) this._init();
     window.addEventListener('popstate', this._onPopState);
+    window.addEventListener('location-changed', this._openNoteFromUrl);
   }
 
   disconnectedCallback(): void {
@@ -52,7 +53,19 @@ export class HomeAssistantNotesPanel extends LitElement {
     this._unsubscribe?.();
     this._unsubscribe = undefined;
     window.removeEventListener('popstate', this._onPopState);
+    window.removeEventListener('location-changed', this._openNoteFromUrl);
   }
+
+  // The Lovelace card deep-links to a note via /home-assistant-notes?note=<id>.
+  private _openNoteFromUrl = (): void => {
+    const params = new URLSearchParams(location.search);
+    const noteId = params.get('note');
+    if (!noteId || !this._notes.some(n => n.note_id === noteId)) return;
+    params.delete('note');
+    const query = params.toString();
+    history.replaceState(history.state, '', `${location.pathname}${query ? `?${query}` : ''}${location.hash}`);
+    this._enterEditor(noteId);
+  };
 
   // On narrow (mobile) layouts, the editor pane replaces the list pane
   // instead of showing beside it — push a history entry when entering it so
@@ -103,6 +116,7 @@ export class HomeAssistantNotesPanel extends LitElement {
 
   private async _loadNotes(): Promise<void> {
     this._notes = sortNotes(await getNotes(this.hass));
+    this._openNoteFromUrl();
   }
 
   private get _selectedNote(): Note | null {

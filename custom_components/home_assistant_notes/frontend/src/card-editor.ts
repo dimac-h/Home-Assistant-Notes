@@ -1,7 +1,10 @@
 import { LitElement, html, css } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
 import type { HomeAssistantNotesCardConfig } from './card';
 import { DEFAULT_MAX_NOTES } from './card-defaults';
+import { getNotes } from './api';
+import type { Note } from './api';
+import type { HomeAssistant } from './ha-types';
 
 @customElement('home-assistant-notes-card-editor')
 export class HomeAssistantNotesCardEditor extends LitElement {
@@ -9,9 +12,24 @@ export class HomeAssistantNotesCardEditor extends LitElement {
     .option { margin-bottom: 16px; }
     label { display: block; margin-bottom: 4px; font-weight: 500; }
     ha-input { width: 100%; }
+    /* The note picker renders as an md-list-item whose headline defaults to 1rem
+       (HA also bumps --ha-font-size-m to 16px on mobile) — pin it to the 14px
+       body size used by the rest of the editor. */
+    ha-form { --md-list-item-label-text-size: calc(14px * var(--ha-font-size-scale, 1)); }
   `;
 
+  @property({ attribute: false }) hass!: HomeAssistant;
   @state() private _config: HomeAssistantNotesCardConfig = { type: 'custom:home-assistant-notes-card' };
+  @state() private _notes: Note[] = [];
+
+  private _loadedNotes = false;
+
+  updated(changed: Map<string, unknown>): void {
+    if (changed.has('hass') && this.hass && !this._loadedNotes) {
+      this._loadedNotes = true;
+      getNotes(this.hass).then(notes => { this._notes = notes; });
+    }
+  }
 
   setConfig(config: HomeAssistantNotesCardConfig): void {
     this._config = config;
@@ -31,18 +49,19 @@ export class HomeAssistantNotesCardEditor extends LitElement {
       </div>
       <div class="option">
         <label for="max_notes">Max Notes to Display</label>
-        <ha-input id="max_notes" type="number" ?disabled=${!!this._config.show_all} min="1" max="20" .value=${String(this._config.max_notes ?? DEFAULT_MAX_NOTES)}
+        <ha-input id="max_notes" type="number" ?disabled=${!!this._config.show_all || !!this._config.note_id} min="1" max="20"
+          .value=${this._config.note_id ? '1' : String(this._config.max_notes ?? DEFAULT_MAX_NOTES)}
           @input=${(e: Event) => this._update({ max_notes: parseInt((e.target as HTMLInputElement).value, 10) || DEFAULT_MAX_NOTES })}></ha-input>
       </div>
       <div class="option">
         <ha-formfield label="Show Pinned Notes Only">
-          <ha-checkbox .checked=${!!this._config.show_pinned_only}
+          <ha-checkbox .checked=${!!this._config.show_pinned_only} ?disabled=${!!this._config.note_id}
             @change=${(e: Event) => this._update({ show_pinned_only: (e.target as HTMLInputElement).checked })}></ha-checkbox>
         </ha-formfield>
       </div>
       <div class="option">
         <ha-formfield label="Show All Notes">
-          <ha-checkbox .checked=${!!this._config.show_all}
+          <ha-checkbox .checked=${!!this._config.show_all} ?disabled=${!!this._config.note_id}
             @change=${(e: Event) => this._update({ show_all: (e.target as HTMLInputElement).checked })}></ha-checkbox>
         </ha-formfield>
       </div>
@@ -52,9 +71,24 @@ export class HomeAssistantNotesCardEditor extends LitElement {
           @input=${(e: Event) => this._update({ card_color: (e.target as HTMLInputElement).value })}></ha-input>
       </div>
       <div class="option">
-        <label for="note_id">Specific Note ID (optional)</label>
-        <ha-input id="note_id" .value=${this._config.note_id ?? ''} placeholder="Leave empty to show all"
-          @input=${(e: Event) => this._update({ note_id: (e.target as HTMLInputElement).value || null })}></ha-input>
+        <ha-form
+          .hass=${this.hass}
+          .data=${{ note_id: this._config.note_id ?? '' }}
+          .schema=${[{
+            name: 'note_id',
+            selector: {
+              select: {
+                mode: 'dropdown',
+                options: [
+                  { value: '', label: 'All notes' },
+                  ...this._notes.map(n => ({ value: n.note_id, label: n.title || 'Untitled' })),
+                ],
+              },
+            },
+          }]}
+          .computeLabel=${() => 'Specific Note (optional)'}
+          @value-changed=${(e: CustomEvent<{ value: { note_id?: string } }>) => this._update({ note_id: e.detail.value.note_id || null })}
+        ></ha-form>
       </div>
     `;
   }
