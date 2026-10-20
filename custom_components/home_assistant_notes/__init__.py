@@ -144,9 +144,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: NotesConfigEntry) -> bool:
     """Set up Home Assistant Notes from a config entry."""
-    storage = NotesStorage(hass)
-    await storage.async_load()
-    entry.runtime_data = storage
+    notes_storage = NotesStorage(hass)
+    await notes_storage.async_load()
+    entry.runtime_data = notes_storage
 
     # Register frontend panel
     if "/home_assistant_notes_panel" not in _REGISTERED_STATIC_PATHS:
