@@ -29,7 +29,7 @@ jobs:
 
       - name: Get version
         id: version
-        uses: home-assistant/actions/helpers/version@master
+        uses: home-assistant/actions/helpers/version@cd6f3635a740c84d8a14f6121a90068b8ece6bf6 # master
 
       - name: Patch manifest and zip
         run: |

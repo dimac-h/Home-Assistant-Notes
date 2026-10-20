@@ -80,7 +80,12 @@
     },
     "get_notes": {
       "name": "Get Notes",
-      "description": "Retrieve all notes. This will fire a 'home_assistant_notes_notes_list' event with all notes."
+      "description": "Retrieve all notes. Returns a response object with a \"notes\" list."
+    }
+  },
+  "exceptions": {
+    "not_loaded": {
+      "message": "Home Assistant Notes is not set up. Add the integration in Settings > Devices & Services."
     }
   }
 }

@@ -36,7 +36,16 @@ def add_extra_js_url_mock() -> MagicMock:
 
 
 @pytest.fixture
-async def setup_integration(hass: HomeAssistant, add_extra_js_url_mock: MagicMock) -> MockConfigEntry:
+def remove_extra_js_url_mock() -> MagicMock:
+    """Stub the frontend's extra-module registry cleanup used on unload."""
+    with patch("custom_components.home_assistant_notes.remove_extra_js_url") as mock:
+        yield mock
+
+
+@pytest.fixture
+async def setup_integration(
+    hass: HomeAssistant, add_extra_js_url_mock: MagicMock, remove_extra_js_url_mock: MagicMock
+) -> MockConfigEntry:
     """Set up the home_assistant_notes integration with a fresh store."""
     # home_assistant_notes registers a static path on hass.http during setup, which
     # is None until the "http" component itself has been set up.
