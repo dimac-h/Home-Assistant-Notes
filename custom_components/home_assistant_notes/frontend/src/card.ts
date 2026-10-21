@@ -35,8 +35,11 @@ function sanitizeNode(node: Node): void {
   const tag = el.tagName.toLowerCase();
   if (!SANITIZE_ALLOWED_TAGS.has(tag)) {
     const parent = el.parentNode;
-    while (el.firstChild) parent?.insertBefore(el.firstChild, el);
+    // Unwrapped children land outside the caller's child snapshot, so sanitize them here.
+    const children = Array.from(el.childNodes);
+    children.forEach(child => parent?.insertBefore(child, el));
     parent?.removeChild(el);
+    children.forEach(sanitizeNode);
     return;
   }
   const allowed = SANITIZE_ALLOWED_ATTRS_BY_TAG[tag] || [];
