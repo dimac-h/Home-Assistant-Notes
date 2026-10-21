@@ -45,6 +45,35 @@ Go to **Settings → Devices & Services → Add Integration** and search for *Ho
 
 [![Add Integration to your Home Assistant instance.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=home_assistant_notes)
 
+## Actions
+
+The integration provides four actions (services). They are available in the Actions picker, automations, scripts and Developer Tools. They need the integration to be set up; otherwise they fail with an error telling you so.
+
+| Action | Fields | Returns |
+|---|---|---|
+| `home_assistant_notes.create_note` | `title` (required), `content`, `color` (hex, default `#FFEB3B`), `pinned`, `tags` | The created note (optional response) |
+| `home_assistant_notes.update_note` | `note_id` (required), `title`, `content`, `color`, `pinned`, `tags` | Nothing. Fails if the note doesn't exist |
+| `home_assistant_notes.delete_note` | `note_id` (required) | Nothing. Fails if the note doesn't exist |
+| `home_assistant_notes.get_notes` | none | `{ notes: [...] }` (response only) |
+
+Each change also fires an event you can use as an automation trigger: `home_assistant_notes_note_created`, `home_assistant_notes_note_updated` (both carry the note) and `home_assistant_notes_note_deleted` (carries `note_id`).
+
+```yaml
+action: home_assistant_notes.create_note
+data:
+  title: Shopping list
+  content: Milk, eggs, bread
+  color: "#FF9800"
+  pinned: true
+  tags: [shopping]
+response_variable: new_note
+```
+
+```yaml
+action: home_assistant_notes.get_notes
+response_variable: result   # result.notes is a list of note objects
+```
+
 ## Formatting toolbar
 
 | Button  | Action                                                 |
@@ -79,6 +108,14 @@ Go to **Settings → Devices & Services → Add Integration** and search for *Ho
 **Panel not in sidebar** — disable and re-enable the integration in Settings → Devices & Services, then hard-refresh the browser.
 
 **Card is not loading** — check the browser console for errors. The card type is `custom:home-assistant-notes-card`.
+
+## Removing the integration
+
+1. Go to **Settings → Devices & Services**, open **Home Assistant Notes**, and choose **Delete** from the ⋮ menu. The sidebar panel and the actions disappear immediately.
+2. Remove any `custom:home-assistant-notes-card` cards from your dashboards.
+3. Optional: uninstall the files via HACS (or delete `custom_components/home_assistant_notes`) and restart.
+
+Your notes stay in `.storage/home_assistant_notes.notes` after removal, so re-adding the integration brings them back. Delete that file (with Home Assistant stopped) if you want them gone for good.
 
 ## License
 

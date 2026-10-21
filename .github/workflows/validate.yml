@@ -2,14 +2,11 @@ name: Validate
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 0 * * *"
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
+  release:
+    types: [published]
 
 permissions: {}
 
@@ -29,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run HACS validation
-        uses: hacs/action@main
+        uses: hacs/action@d556e736723344f83838d08488c983a15381059a # 22.5.0
         with:
           category: integration
 

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 import voluptuous as vol
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
 from custom_components.home_assistant_notes.__init__ import (
     CREATE_NOTE_SCHEMA,
@@ -13,6 +13,7 @@ from custom_components.home_assistant_notes.__init__ import (
     UPDATE_NOTE_SCHEMA,
 )
 from custom_components.home_assistant_notes.const import CARD_MODULE_URL, DOMAIN
+from custom_components.home_assistant_notes.storage import NotesStorage
 
 if TYPE_CHECKING:
     from unittest.mock import MagicMock
@@ -115,10 +116,27 @@ async def test_delete_note_service_missing_note_raises(
         await hass.services.async_call(DOMAIN, "delete_note", {"note_id": "missing"}, blocking=True)
 
 
-async def test_unload_removes_services(hass: HomeAssistant, setup_integration: MockConfigEntry) -> None:
+async def test_unload_keeps_services_but_they_raise(
+    hass: HomeAssistant, setup_integration: MockConfigEntry
+) -> None:
     assert await hass.config_entries.async_unload(setup_integration.entry_id)
     await hass.async_block_till_done()
-    assert not hass.services.has_service(DOMAIN, "create_note")
+    assert hass.services.has_service(DOMAIN, "create_note")
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(DOMAIN, "create_note", {"title": "x"}, blocking=True)
+
+
+async def test_unload_removes_card_module(
+    hass: HomeAssistant, setup_integration: MockConfigEntry, remove_extra_js_url_mock: MagicMock
+) -> None:
+    assert await hass.config_entries.async_unload(setup_integration.entry_id)
+    remove_extra_js_url_mock.assert_called_once_with(hass, CARD_MODULE_URL)
+
+
+async def test_entry_exposes_storage_as_runtime_data(
+    setup_integration: MockConfigEntry,
+) -> None:
+    assert isinstance(setup_integration.runtime_data, NotesStorage)
 
 
 # ---------------------------------------------------------------------------

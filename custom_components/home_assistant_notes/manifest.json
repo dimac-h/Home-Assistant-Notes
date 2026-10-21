@@ -8,6 +8,7 @@
   "integration_type": "service",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/dimac-h/Home-Assistant-Notes/issues",
+  "quality_scale": "bronze",
   "requirements": [],
   "version": "1.0.0"
 }
