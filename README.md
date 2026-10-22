@@ -14,10 +14,10 @@
 
 ## Features
 
-- Rich text editing via [Tiptap](https://tiptap.dev/) headings, bold, italic, lists, checklists, highlights, links
+- Rich text editing via [Tiptap](https://tiptap.dev/) headings, bold, italic, lists, checklists, highlights, links and code
 - Ten note colors with pin support
 - Real-time search
-- Dashboard card to display notes on any view
+- Dashboard card to display notes on any view with filter and configuration options
 - Auto-save
 - Dark mode
 
@@ -25,13 +25,9 @@
 
 ### HACS (recommended)
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 
-1. Open HACS → Integrations → ⋮ → Custom repositories
-2. Add `https://github.com/dimac-h/Home-Assistant-Notes` as an Integration
-3. Download **Home Assistant Notes** and restart Home Assistant
-
-Or click the button below (requires [My Home Assistant](https://www.home-assistant.io/integrations/my/) configured) to open the repository directly in HACS:
+Find the integration directly in the Home Assistant Marketplace (formerly HACS)
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=dimac-h&repository=Home-Assistant-Notes&category=integration)
 
@@ -47,7 +43,7 @@ Go to **Settings → Devices & Services → Add Integration** and search for *Ho
 
 ## Actions
 
-The integration provides four actions (services). They are available in the Actions picker, automations, scripts and Developer Tools. They need the integration to be set up; otherwise they fail with an error telling you so.
+The integration provides four actions (services). They are available in the Actions picker, automations, scripts and Developer Tools.
 
 | Action | Fields | Returns |
 |---|---|---|
@@ -56,7 +52,7 @@ The integration provides four actions (services). They are available in the Acti
 | `home_assistant_notes.delete_note` | `note_id` (required) | Nothing. Fails if the note doesn't exist |
 | `home_assistant_notes.get_notes` | none | `{ notes: [...] }` (response only) |
 
-Each change also fires an event you can use as an automation trigger: `home_assistant_notes_note_created`, `home_assistant_notes_note_updated` (both carry the note) and `home_assistant_notes_note_deleted` (carries `note_id`).
+Each action also fires an event you can use as an automation trigger: `home_assistant_notes_note_created`, `home_assistant_notes_note_updated` (the note is attached) and `home_assistant_notes_note_deleted` (carries `note_id`).
 
 ```yaml
 action: home_assistant_notes.create_note
@@ -115,7 +111,7 @@ response_variable: result   # result.notes is a list of note objects
 2. Remove any `custom:home-assistant-notes-card` cards from your dashboards.
 3. Optional: uninstall the files via HACS (or delete `custom_components/home_assistant_notes`) and restart.
 
-Your notes stay in `.storage/home_assistant_notes.notes` after removal, so re-adding the integration brings them back. Delete that file (with Home Assistant stopped) if you want them gone for good.
+The notes remain in `.storage/home_assistant_notes.notes` after removal, so you have to manually remove them through the file editor
 
 ## License
 
