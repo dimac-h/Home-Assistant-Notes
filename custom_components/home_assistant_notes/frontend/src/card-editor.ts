@@ -54,16 +54,17 @@ export class HomeAssistantNotesCardEditor extends LitElement {
           @input=${(e: Event) => this._update({ max_notes: parseInt((e.target as HTMLInputElement).value, 10) || DEFAULT_MAX_NOTES })}></ha-input>
       </div>
       <div class="option">
-        <ha-formfield label="Show Pinned Notes Only">
-          <ha-checkbox .checked=${!!this._config.show_pinned_only} ?disabled=${!!this._config.note_id}
-            @change=${(e: Event) => this._update({ show_pinned_only: (e.target as HTMLInputElement).checked })}></ha-checkbox>
-        </ha-formfield>
-      </div>
-      <div class="option">
-        <ha-formfield label="Show All Notes">
-          <ha-checkbox .checked=${!!this._config.show_all} ?disabled=${!!this._config.note_id}
-            @change=${(e: Event) => this._update({ show_all: (e.target as HTMLInputElement).checked })}></ha-checkbox>
-        </ha-formfield>
+        <ha-form
+          .hass=${this.hass}
+          .data=${{ show_pinned_only: !!this._config.show_pinned_only, show_all: !!this._config.show_all }}
+          .schema=${[
+            { name: 'show_pinned_only', selector: { boolean: {} }, disabled: !!this._config.note_id },
+            { name: 'show_all', selector: { boolean: {} }, disabled: !!this._config.note_id },
+          ]}
+          .computeLabel=${(s: { name: string }) => (s.name === 'show_all' ? 'Show All Notes' : 'Show Pinned Notes Only')}
+          @value-changed=${(e: CustomEvent<{ value: { show_pinned_only: boolean; show_all: boolean } }>) =>
+            this._update({ show_pinned_only: e.detail.value.show_pinned_only, show_all: e.detail.value.show_all })}
+        ></ha-form>
       </div>
       <div class="option">
         <label for="card_color">Card Background Color (hex)</label>
