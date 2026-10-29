@@ -30,6 +30,7 @@ wheels/
 *.db-shm
 *.db-wal
 dev/config/
+dev/config-beta/
 
 # IDE
 .vscode/
