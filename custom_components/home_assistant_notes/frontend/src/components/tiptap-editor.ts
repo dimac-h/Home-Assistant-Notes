@@ -159,6 +159,8 @@ export class HomeAssistantNotesTiptapEditor extends LitElement {
     // the wrong state after the reorder.
     const checked = checkbox.checked;
     checkbox.checked = !checked;
+    const scrollers = this._scrollableAncestors();
+    const savedScroll = scrollers.map((el) => el.scrollTop);
     const $pos = view.state.doc.resolve(view.posAtDOM(li, 0));
     let depth = $pos.depth;
     while (depth > 0 && $pos.node(depth).type.name !== 'taskList') depth--;
@@ -208,6 +210,36 @@ export class HomeAssistantNotesTiptapEditor extends LitElement {
       }
     }
     view.dispatch(tr);
+    // Chromium scrolls the container to reveal the caret a few ms after this
+    // re-render, even though nothing asked it to (Safari doesn't). Toggling a
+    // checkbox should never scroll, so undo any scroll that happens right after
+    // it, until the user starts scrolling themselves. A no-op where the browser
+    // doesn't scroll.
+    const restore = () => scrollers.forEach((el, i) => {
+      if (el.scrollTop !== savedScroll[i]) el.scrollTop = savedScroll[i];
+    });
+    restore();
+    const userEvents = ['wheel', 'touchstart', 'keydown'];
+    const stop = () => {
+      scrollers.forEach((el) => el.removeEventListener('scroll', restore));
+      userEvents.forEach((t) => window.removeEventListener(t, stop, true));
+      clearTimeout(timer);
+    };
+    const timer = setTimeout(stop, 300);
+    scrollers.forEach((el) => el.addEventListener('scroll', restore));
+    userEvents.forEach((t) => window.addEventListener(t, stop, true));
+  }
+
+  // Scrollable ancestors of the editor, crossing shadow-DOM boundaries.
+  private _scrollableAncestors(): HTMLElement[] {
+    const result: HTMLElement[] = [];
+    let node: Node | null = this;
+    while (node) {
+      if (node instanceof HTMLElement && node.scrollHeight > node.clientHeight &&
+          /(auto|scroll)/.test(getComputedStyle(node).overflowY)) result.push(node);
+      node = node.parentNode ?? (node as ShadowRoot).host ?? null;
+    }
+    return result;
   }
 
   private _emitChanged(): void {
