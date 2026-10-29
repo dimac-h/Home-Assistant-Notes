@@ -1,7 +1,9 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property, query } from 'lit/decorators.js';
 import { NodeSelection, TextSelection } from '@tiptap/pm/state';
-import { loadTiptapExtensions } from '../tiptap-extensions';
+import { loadTiptapExtensions, backspaceEmptyParagraphAfterList } from '../tiptap-extensions';
+import { scrollableAncestors } from '../scroll-utils';
+import { attachCaretLogger, isDebugEnabled } from '../debug-log';
 
 export type ToolbarAction =
   | 'paragraph' | 'h1' | 'h2' | 'h3'
@@ -79,6 +81,7 @@ export class HomeAssistantNotesTiptapEditor extends LitElement {
   private _editor: any = null;
   private _fallback = false;
   private _lastEmitted = '';
+  private _stopCaretLogger?: () => void;
 
   async connectedCallback(): Promise<void> {
     super.connectedCallback();
@@ -88,6 +91,7 @@ export class HomeAssistantNotesTiptapEditor extends LitElement {
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    this._stopCaretLogger?.();
     this._editor?.destroy();
     this._editor = null;
   }
@@ -126,9 +130,29 @@ export class HomeAssistantNotesTiptapEditor extends LitElement {
       extensions,
       content: this.content,
       autofocus: 'end',
+      editorProps: {
+        handleDOMEvents: {
+          // Firefox for Android workaround. Its soft-keyboard Backspace in an empty
+          // top-level paragraph after a list is applied by the browser itself (a
+          // cancelable `beforeinput`, not a keydown the keymap can stop), and
+          // ProseMirror reading that edit back flips the document between deleting
+          // and re-adding the paragraph, bouncing the caret. We cancel the native
+          // edit and apply backspaceEmptyParagraphAfterList() instead. If a
+          // browser stops sending a cancelable event here this simply stops
+          // firing (the flip returns); if ProseMirror fixes reading the edit back
+          // it becomes redundant and can be removed. Re-check on Tiptap bumps.
+          beforeinput: (_view, event) => {
+            if ((event as InputEvent).inputType !== 'deleteContentBackward' || !event.cancelable || !this._editor) return false;
+            if (!backspaceEmptyParagraphAfterList(this._editor)) return false;
+            event.preventDefault();
+            return true;
+          },
+        },
+      },
       onUpdate: () => this._emitChanged(),
     });
     this._lastEmitted = this._editor.getHTML();
+    if (isDebugEnabled()) this._stopCaretLogger = attachCaretLogger(this, this._editor);
     // Capture-phase listener on the mount, ahead of TaskItem's own 'change'
     // handler on the <input>: that handler calls editor.focus(), which with the
     // keyboard closed focuses the editor, restores its stored caret (often the
@@ -159,7 +183,7 @@ export class HomeAssistantNotesTiptapEditor extends LitElement {
     // the wrong state after the reorder.
     const checked = checkbox.checked;
     checkbox.checked = !checked;
-    const scrollers = this._scrollableAncestors();
+    const scrollers = scrollableAncestors(this);
     const savedScroll = scrollers.map((el) => el.scrollTop);
     const $pos = view.state.doc.resolve(view.posAtDOM(li, 0));
     let depth = $pos.depth;
@@ -228,18 +252,6 @@ export class HomeAssistantNotesTiptapEditor extends LitElement {
     const timer = setTimeout(stop, 300);
     scrollers.forEach((el) => el.addEventListener('scroll', restore));
     userEvents.forEach((t) => window.addEventListener(t, stop, true));
-  }
-
-  // Scrollable ancestors of the editor, crossing shadow-DOM boundaries.
-  private _scrollableAncestors(): HTMLElement[] {
-    const result: HTMLElement[] = [];
-    let node: Node | null = this;
-    while (node) {
-      if (node instanceof HTMLElement && node.scrollHeight > node.clientHeight &&
-          /(auto|scroll)/.test(getComputedStyle(node).overflowY)) result.push(node);
-      node = node.parentNode ?? (node as ShadowRoot).host ?? null;
-    }
-    return result;
   }
 
   private _emitChanged(): void {
