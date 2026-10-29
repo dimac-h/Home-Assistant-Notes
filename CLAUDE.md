@@ -16,6 +16,16 @@ cd custom_components/home_assistant_notes/frontend
 npm ci && npm run build   # writes straight into ../www/ (git-ignored build output)
 ```
 
+Frontend tests (Vitest + jsdom, `*.test.ts` next to the source) run with `npm test` in `frontend/` and in CI. jsdom has no
+layout, so tests simulate what the browser does (a `change` on a checkbox, a cancelable `beforeinput`, a `scroll` event on a
+stubbed scroller) rather than measure real scrolling. When fixing a browser-specific editor bug, add a test that fails
+without the fix.
+
+Caret/scroll bugs that only show on a real device: set `localStorage.setItem('home-assistant-notes-debug', '1')` in the
+browser and reload the panel. `src/debug-log.ts` then logs every selection/transaction/input/focus/scroll event (prefixed
+`[caret]`) to the console and forwards it to HA's log under `home_assistant_notes.debug`, readable with
+`docker compose -f dev/docker-compose.yml logs | grep home_assistant_notes.debug`. Remove the key to switch it off.
+
 Local testing uses a disposable, bind-mounted HA instance instead of copying files into a real install:
 ```bash
 docker compose -f dev/docker-compose.yml up -d      # start — http://localhost:8123

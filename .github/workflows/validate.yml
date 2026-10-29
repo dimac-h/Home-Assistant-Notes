@@ -62,8 +62,9 @@ jobs:
           cache: npm
           cache-dependency-path: custom_components/home_assistant_notes/frontend/package-lock.json
 
-      - name: Typecheck and build
+      - name: Typecheck, build and test
         working-directory: custom_components/home_assistant_notes/frontend
         run: |
           npm ci
           npm run build
+          npm test

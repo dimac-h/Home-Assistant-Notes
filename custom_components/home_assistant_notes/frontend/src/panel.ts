@@ -6,6 +6,7 @@ import { getNotes, createNote, updateNote, deleteNote, subscribeNoteEvents } fro
 import type { Note } from './api';
 import { DEFAULT_NOTE_COLOR } from './colors';
 import type { HomeAssistant } from './ha-types';
+import { forwardDebugEventsToHa } from './debug-log';
 
 function sortNotes(notes: Note[]): Note[] {
   return [...notes].sort((a, b) => {
@@ -41,8 +42,11 @@ export class HomeAssistantNotesPanel extends LitElement {
   private _creatingNote = false;
   private _pushedEditorState = false;
 
+  private _debugForwarded = false;
+
   connectedCallback(): void {
     super.connectedCallback();
+    if (!this._debugForwarded) { this._debugForwarded = true; forwardDebugEventsToHa(this, () => this.hass); }
     if (this.hass) this._init();
     window.addEventListener('popstate', this._onPopState);
     window.addEventListener('location-changed', this._openNoteFromUrl);
