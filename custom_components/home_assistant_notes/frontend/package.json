@@ -8,7 +8,8 @@
   },
   "scripts": {
     "build": "tsc --noEmit && vite build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@mdi/js": "^7.4.47",
@@ -22,7 +23,9 @@
     "lit": "^3.3.3"
   },
   "devDependencies": {
+    "jsdom": "^30.1.3",
     "typescript": "^7.0.2",
-    "vite": "^7.3.7"
+    "vite": "^7.3.7",
+    "vitest": "^5.0.5"
   }
 }
