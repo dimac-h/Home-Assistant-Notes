@@ -6,14 +6,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from homeassistant.setup import async_setup_component
-from pytest_homeassistant_custom_component.common import MockConfigEntry, mock_component
+from pytest_homeassistant.common import MockConfigEntry, mock_component
 
 from custom_components.home_assistant_notes.const import DOMAIN
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
-pytest_plugins = "pytest_homeassistant_custom_component"
+pytest_plugins = "pytest_homeassistant"
 
 
 @pytest.fixture(autouse=True)
