@@ -95,7 +95,7 @@ response_variable: result   # result.notes is a list of note objects
 
 **Can I show a note on a dashboard?** Yes, add the `custom:home-assistant-notes-card` card to any view.
 
-**Which Home Assistant version do I need?** 2026.8.2 or newer.
+**Home Assistant version required** 2026.11.0 or newer.
 
 **Can I use notes in automations?** Yes. The `create_note`, `update_note`, `delete_note`, and `get_notes` services are available in the Actions picker and in YAML.
 
