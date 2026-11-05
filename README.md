@@ -23,11 +23,11 @@
 
 ## Installation
 
-### HACS (recommended)
+### Marketplace (recommended)
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 
-Find the integration directly in the Home Assistant Marketplace (formerly HACS)
+Find *Home Assistant Notes* under **Settings → Marketplace** (the built-in Marketplace in Home Assistant 2026.11+, which replaces HACS), or use the button below.
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=dimac-h&repository=Home-Assistant-Notes&category=integration)
 
@@ -109,7 +109,7 @@ response_variable: result   # result.notes is a list of note objects
 
 1. Go to **Settings → Devices & Services**, open **Home Assistant Notes**, and choose **Delete** from the ⋮ menu. The sidebar panel and the actions disappear immediately.
 2. Remove any `custom:home-assistant-notes-card` cards from your dashboards.
-3. Optional: uninstall the files via HACS (or delete `custom_components/home_assistant_notes`) and restart.
+3. Optional: uninstall the files via the Marketplace (or delete `custom_components/home_assistant_notes`) and restart.
 
 The notes remain in `.storage/home_assistant_notes.notes` after removal, so you have to manually remove them through the file editor
 
