@@ -51,6 +51,7 @@ node_modules/
 npm-debug.log
 yarn-error.log
 dev/config/
+dev/config-beta/
 
 # Local planning docs (specs/plans) - not part of repo content
 docs/
