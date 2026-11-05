@@ -27,7 +27,7 @@
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 
-Find *Home Assistant Notes* under **Settings → Marketplace** (the built-in Marketplace in Home Assistant 2026.11+, which replaces HACS), or use the button below.
+Find *Home Assistant Notes* under **Settings → Marketplace** (formally HACS) or use the button below.
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=dimac-h&repository=Home-Assistant-Notes&category=integration)
 
