@@ -1,6 +1,7 @@
 {
   "domain": "home_assistant_notes",
   "name": "Home Assistant Notes",
+  "categories": ["productivity_information"],
   "codeowners": ["@dimac-h"],
   "config_flow": true,
   "dependencies": ["frontend", "http"],

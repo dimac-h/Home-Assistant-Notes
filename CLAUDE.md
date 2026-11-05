@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-A Home Assistant custom integration (`custom_components/home_assistant_notes`) that adds an Apple Notes-style panel and Lovelace card to Home Assistant. Distributed via HACS, requires HA 2026.11.0+ (the panel registration uses `handle_safe_area`, added to `panel_custom.async_register_panel` in 2026.8.2 — see "Custom Panel Safe-Area Opt-Out" below).
+A Home Assistant custom integration (`custom_components/home_assistant_notes`) that adds an Apple Notes-style panel and Lovelace card to Home Assistant. Distributed via the Home Assistant Marketplace (the built-in successor to HACS: same catalog, same `hacs.json`), requires HA 2026.11.0+ (the panel registration uses `handle_safe_area`, added to `panel_custom.async_register_panel` in 2026.8.2 — see "Custom Panel Safe-Area Opt-Out" below).
 
 ## Development
 
@@ -38,7 +38,7 @@ rm -rf dev/config                                    # full reset
 
 ## Releasing
 
-Publishing a GitHub Release triggers `.github/workflows/release.yml`, which builds `frontend/`, patches `manifest.json`'s version, zips `custom_components/home_assistant_notes/`, and uploads the zip as a release asset. `hacs.json` sets `"zip_release": true` so HACS installs from that built asset rather than raw repo content — the build output (`www/`) is git-ignored and exists only in the release zip. A fresh clone needs `npm ci && npm run build` before the dev instance shows the panel; `www/.gitkeep` keeps the directory present so the integration still loads without a build.
+Publishing a GitHub Release triggers `.github/workflows/release.yml`, which builds `frontend/`, patches `manifest.json`'s version, zips `custom_components/home_assistant_notes/`, and uploads the zip as a release asset. `hacs.json` sets `"zip_release": true` so the Marketplace installs from that built asset rather than raw repo content — the build output (`www/`) is git-ignored and exists only in the release zip. A fresh clone needs `npm ci && npm run build` before the dev instance shows the panel; `www/.gitkeep` keeps the directory present so the integration still loads without a build.
 
 ## Architecture
 
@@ -112,6 +112,6 @@ Always open a pull request when completing a feature or fix. Never merge directl
 
 All commits, branches, and PRs in this repo must be attributed to `dimac-h` (author and committer) — never to Claude, an AI, or a specific Claude model name, in commit messages, PR titles/descriptions, or branch names.
 
-## HACS Distribution
+## Marketplace (HACS) Distribution
 
-`hacs.json` and `manifest.json` must stay in sync for HACS compatibility. The `render_readme` flag in `hacs.json` means the README is shown as the HACS integration page.
+`hacs.json` and `manifest.json` must stay in sync for Marketplace compatibility (the Marketplace is HACS built into HA 2026.11+ and still reads `hacs.json`). The `render_readme` flag in `hacs.json` means the README is shown as the integration page. The CI job still uses `hacs/action` to validate the repo.
