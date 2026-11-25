@@ -81,3 +81,22 @@ describe('panel spellcheck config', () => {
     expect(panel._spellcheckConfig).toEqual(good);
   });
 });
+
+describe('panel spell strip events', () => {
+  it('forwards add-dictionary and ignore events to the services and swallows errors', async () => {
+    const h = makeHass();
+    h.hass.callService.mockRejectedValueOnce(new Error('boom'));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const panel = document.createElement('home-assistant-notes-panel') as any;
+    panel.hass = h.hass;
+    document.body.appendChild(panel);
+    await panel.updateComplete;
+    const editor = panel.shadowRoot.querySelector('home-assistant-notes-editor');
+    editor.dispatchEvent(new CustomEvent('spell-add-dictionary-word', { detail: { lang: 'nl', word: 'teh' }, bubbles: true, composed: true }));
+    editor.dispatchEvent(new CustomEvent('spell-add-ignored-word', { detail: { word: 'adn' }, bubbles: true, composed: true }));
+    expect(h.hass.callService).toHaveBeenCalledWith('home_assistant_notes', 'add_dictionary_word', { lang: 'nl', word: 'teh' });
+    expect(h.hass.callService).toHaveBeenCalledWith('home_assistant_notes', 'add_ignored_word', { word: 'adn' });
+    await vi.waitFor(() => expect(warn).toHaveBeenCalledTimes(1));
+    warn.mockRestore();
+  });
+});

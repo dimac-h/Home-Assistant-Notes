@@ -2,7 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import './components/note-list';
 import './components/note-editor';
-import { getNotes, createNote, updateNote, deleteNote, subscribeNoteEvents, getSpellcheckConfig, subscribeSpellcheckEvents } from './api';
+import { getNotes, createNote, updateNote, deleteNote, subscribeNoteEvents, getSpellcheckConfig, subscribeSpellcheckEvents, addDictionaryWord, addIgnoredWord } from './api';
 import type { Note, SpellcheckConfig } from './api';
 import { DEFAULT_NOTE_COLOR } from './colors';
 import type { HomeAssistant } from './ha-types';
@@ -205,6 +205,16 @@ export class HomeAssistantNotesPanel extends LitElement {
     this._leaveEditor();
   }
 
+  private _onSpellAddDictionaryWord = (e: CustomEvent<{ lang: string; word: string }>): void => {
+    if (!this.hass) return;
+    addDictionaryWord(this.hass, e.detail.lang, e.detail.word).catch((err) => console.warn('Could not add word to dictionary', err));
+  };
+
+  private _onSpellAddIgnoredWord = (e: CustomEvent<{ word: string }>): void => {
+    if (!this.hass) return;
+    addIgnoredWord(this.hass, e.detail.word).catch((err) => console.warn('Could not ignore word', err));
+  };
+
   render() {
     return html`
       <div class="layout">
@@ -226,6 +236,8 @@ export class HomeAssistantNotesPanel extends LitElement {
             @editor-back=${this._onEditorBack}
             @note-save=${this._onNoteSave}
             @note-delete=${this._onNoteDelete}
+            @spell-add-dictionary-word=${this._onSpellAddDictionaryWord}
+            @spell-add-ignored-word=${this._onSpellAddIgnoredWord}
           ></home-assistant-notes-editor>
         </div>
       </div>

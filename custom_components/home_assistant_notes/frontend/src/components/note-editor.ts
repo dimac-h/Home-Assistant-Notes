@@ -3,6 +3,7 @@ import { customElement, property, query, state } from 'lit/decorators.js';
 import { mdiCheck, mdiArrowLeft } from '@mdi/js';
 import './note-toolbar';
 import './tiptap-editor';
+import './note-spell-strip';
 import type { HomeAssistantNotesTiptapEditor, ToolbarAction } from './tiptap-editor';
 import type { Note, SpellcheckConfig } from '../api';
 
@@ -49,6 +50,9 @@ export class HomeAssistantNotesEditor extends LitElement {
       padding: 20px 24px 40px;
     }
     home-assistant-notes-tiptap-editor { flex: 1 0 auto; display: flex; flex-direction: column; }
+    /* Sits directly above the toolbar; the toolbar's bottom margin (keyboard / home
+       indicator aware) is untouched, and a hidden strip takes no space. */
+    home-assistant-notes-spell-strip { flex-shrink: 0; min-width: 0; margin: 8px 12px 0; }
     home-assistant-notes-toolbar {
       flex-shrink: 0;
       margin: 8px 12px 12px;
@@ -81,6 +85,10 @@ export class HomeAssistantNotesEditor extends LitElement {
 
   @state() private _pendingDelete = false;
   @state() private _justSaved = false;
+  @state() private _spellWord: string | null = null;
+  @state() private _spellSuggestions: string[] = [];
+  // word + language the strip is showing or fetching suggestions for.
+  private _spellKey = '';
 
   @query('home-assistant-notes-tiptap-editor') private _tiptap?: HomeAssistantNotesTiptapEditor;
   @query('.title-input') private _titleInput?: HTMLTextAreaElement;
@@ -220,6 +228,52 @@ export class HomeAssistantNotesEditor extends LitElement {
     }));
   }
 
+  // The caret moved or check results arrived. Keeps the strip as is while the caret stays
+  // on the same word (no flicker) and drops suggestions that come back for a word the
+  // caret has since left.
+  private _onSpellcheckState = async (): Promise<void> => {
+    const hit = this._tiptap?.wordAtCaret();
+    if (!hit) {
+      this._spellKey = '';
+      this._spellWord = null;
+      this._spellSuggestions = [];
+      return;
+    }
+    const key = `${hit.lang}:${hit.word}`;
+    if (key === this._spellKey) return;
+    this._spellKey = key;
+    let suggestions: string[] = [];
+    try {
+      suggestions = (await this._tiptap?.suggest(hit.word, hit.lang)) ?? [];
+    } catch { /* show the strip without suggestions */ }
+    if (this._spellKey !== key) return;
+    const now = this._tiptap?.wordAtCaret();
+    if (!now || `${now.lang}:${now.word}` !== key) return;
+    this._spellWord = hit.word;
+    this._spellSuggestions = suggestions;
+  };
+
+  // The word the strip refers to, only if the caret is still on it.
+  private _currentSpellHit(): { word: string; from: number; to: number; lang: string } | null {
+    const hit = this._tiptap?.wordAtCaret();
+    return hit && hit.word === this._spellWord ? hit : null;
+  }
+
+  private _onSpellSuggestion(e: CustomEvent<{ suggestion: string }>): void {
+    const hit = this._currentSpellHit();
+    if (hit) this._tiptap?.replaceRange(hit.from, hit.to, e.detail.suggestion);
+  }
+
+  private _onSpellAddDictionary(): void {
+    const hit = this._currentSpellHit();
+    if (hit) this.dispatchEvent(new CustomEvent('spell-add-dictionary-word', { detail: { lang: hit.lang, word: hit.word }, bubbles: true, composed: true }));
+  }
+
+  private _onSpellIgnore(): void {
+    const hit = this._currentSpellHit();
+    if (hit) this.dispatchEvent(new CustomEvent('spell-add-ignored-word', { detail: { word: hit.word }, bubbles: true, composed: true }));
+  }
+
   private _onToolbarAction(e: CustomEvent<{ action: ToolbarAction; payload?: { href?: string } }>): void {
     this._tiptap?.runAction(e.detail.action, e.detail.payload);
   }
@@ -256,6 +310,7 @@ export class HomeAssistantNotesEditor extends LitElement {
     if (!this.note) {
       return html`<div class="empty">Select a note or create one</div>`;
     }
+    const spellWord = this.note.spellcheck !== false ? this._spellWord : null;
     return html`
       <div class="header">
         <ha-icon-button class="back-btn" .path=${mdiArrowLeft} @click=${() => {
@@ -284,8 +339,17 @@ export class HomeAssistantNotesEditor extends LitElement {
           .spellcheck=${this.note.spellcheck !== false}
           .spellcheckConfig=${this.spellcheckConfig}
           @content-changed=${() => this._scheduleSave()}
+          @spellcheck-state=${this._onSpellcheckState}
         ></home-assistant-notes-tiptap-editor>
       </div>
+      <home-assistant-notes-spell-strip
+        ?hidden=${!spellWord}
+        .word=${spellWord}
+        .suggestions=${this._spellSuggestions}
+        @spell-suggestion=${this._onSpellSuggestion}
+        @spell-add-dictionary=${this._onSpellAddDictionary}
+        @spell-ignore=${this._onSpellIgnore}
+      ></home-assistant-notes-spell-strip>
       <home-assistant-notes-toolbar
         .pinned=${this.note.pinned}
         .color=${this.note.color}
