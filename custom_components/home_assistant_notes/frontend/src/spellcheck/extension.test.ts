@@ -88,28 +88,19 @@ describe('spellcheck extension', () => {
   });
 
   it.each([
-    ['same length', 'wrold', 'world', 'helo'],
-    ['growing', 'wrold', 'worldwide', 'helo'],
-    ['shrinking', 'wrold', 'a', 'helo'],
-    ['deleting the word', 'wrold', '', 'helo'],
-  ])('keeps the other squiggle exactly on its word when a correction is %s (regression)', async (_n, bad, fix, other) => {
-    const { editor } = make('<p>hello wrold and helo</p>');
+    ['same length', '<p>hello wrold and helo</p>', 'wrold', 'world', 'helo'],
+    ['growing', '<p>hello wrold and helo</p>', 'wrold', 'worldwide', 'helo'],
+    ['shrinking', '<p>hello wrold and helo</p>', 'wrold', 'a', 'helo'],
+    ['deleting the word', '<p>hello wrold and helo</p>', 'wrold', '', 'helo'],
+    ['growing (later word, earlier squiggle kept)', '<p>helo and wrold</p>', 'wrold', 'worldwide', 'helo'],
+  ])('keeps the other squiggle exactly on its word when a correction is %s (regression)', async (_n, html, bad, fix, other) => {
+    const { editor } = make(html);
     await flush();
     const from = posOf(editor, bad);
     editor.view.dispatch(editor.state.tr.insertText(fix, from, from + bad.length));
     expect(squiggles(editor)).toEqual([other]);
     await flush();
     expect(squiggles(editor)).toEqual([other]);
-  });
-
-  it('keeps the earlier squiggle when a later misspelled word is corrected', async () => {
-    const { editor } = make('<p>helo and wrold</p>');
-    await flush();
-    const from = posOf(editor, 'wrold');
-    editor.view.dispatch(editor.state.tr.insertText('worldwide', from, from + 5));
-    expect(squiggles(editor)).toEqual(['helo']);
-    await flush();
-    expect(squiggles(editor)).toEqual(['helo']);
   });
 
   it('places squiggles exactly after a non-BMP character', async () => {

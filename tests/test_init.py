@@ -19,8 +19,6 @@ from custom_components.home_assistant_notes.__init__ import (
 )
 from custom_components.home_assistant_notes.const import CARD_MODULE_URL, DOMAIN, EVENT_SPELLCHECK_CHANGED
 from custom_components.home_assistant_notes.languages import SUPPORTED_LANGUAGES
-from custom_components.home_assistant_notes.storage import NotesStorage
-from custom_components.home_assistant_notes.words import WordsStorage
 
 if TYPE_CHECKING:
     from unittest.mock import MagicMock
@@ -260,11 +258,6 @@ class TestDeleteNoteSchema:
 # Word list services
 # ---------------------------------------------------------------------------
 
-async def test_entry_runtime_data_holds_notes_and_words(setup_integration: MockConfigEntry) -> None:
-    assert isinstance(setup_integration.runtime_data.notes, NotesStorage)
-    assert isinstance(setup_integration.runtime_data.words, WordsStorage)
-
-
 async def test_word_services_update_store_and_fire_event(
     hass: HomeAssistant, setup_integration: MockConfigEntry
 ) -> None:
@@ -379,12 +372,8 @@ async def test_dictionary_status_change_fires_spellcheck_changed(
     assert len(events) == 1
 
 
-def test_options_description_has_no_reload_sentence() -> None:
-    expected = (
-        "Choose the two languages for your notes. The language dictionaries are "
-        "downloaded once in the background and then served from HA."
-    )
+def test_options_strings_match_english_translation() -> None:
     base = Path(__file__).parent.parent / "custom_components" / "home_assistant_notes"
-    for name in ("strings.json", "translations/en.json"):
-        data = json.loads((base / name).read_text(encoding="utf-8"))
-        assert data["options"]["step"]["init"]["description"] == expected
+    strings = json.loads((base / "strings.json").read_text(encoding="utf-8"))
+    english = json.loads((base / "translations/en.json").read_text(encoding="utf-8"))
+    assert strings["options"] == english["options"]

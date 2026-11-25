@@ -33,25 +33,15 @@ describe('toolbar language chip', () => {
     expect(t.chip().textContent).toContain('English');
   });
 
-  it('auto-detected block offers the other language and Don\'t check', async () => {
-    const t = await mount({ languageName: 'English', otherLanguageName: 'Nederlands', spellcheckOn: true });
-    expect(t.items()).toEqual(['Nederlands', "Don't check"]);
-  });
-
-  it('manual override also offers Auto-detect', async () => {
-    const t = await mount({ languageName: 'English', otherLanguageName: 'Nederlands', languageManual: true, spellcheckOn: true });
-    expect(t.items()).toEqual(['Nederlands', 'Auto-detect', "Don't check"]);
-  });
-
-  it('spellcheck off shows Off and only Check spelling', async () => {
-    const t = await mount({ languageName: 'English', otherLanguageName: 'Nederlands', spellcheckOn: false });
-    expect(t.chip().textContent).toContain('Off');
-    expect(t.items()).toEqual(['Check spelling']);
-  });
-
-  it('omits the other-language item when there is no other language', async () => {
-    const t = await mount({ languageName: 'English', otherLanguageName: '', spellcheckOn: true });
-    expect(t.items()).toEqual(["Don't check"]);
+  it.each([
+    ['auto-detected block offers the other language and Don\'t check', { otherLanguageName: 'Nederlands', spellcheckOn: true }, undefined, ['Nederlands', "Don't check"]],
+    ['manual override also offers Auto-detect', { otherLanguageName: 'Nederlands', languageManual: true, spellcheckOn: true }, undefined, ['Nederlands', 'Auto-detect', "Don't check"]],
+    ['spellcheck off shows Off and only Check spelling', { otherLanguageName: 'Nederlands', spellcheckOn: false }, 'Off', ['Check spelling']],
+    ['no other language omits the other-language item', { otherLanguageName: '', spellcheckOn: true }, undefined, ["Don't check"]],
+  ])('%s', async (_name, props, chipText, expectedItems) => {
+    const t = await mount({ languageName: 'English', ...props });
+    if (chipText) expect(t.chip().textContent).toContain(chipText);
+    expect(t.items()).toEqual(expectedItems);
   });
 
   it('fires language-select with the mode and closes the dropdown', async () => {

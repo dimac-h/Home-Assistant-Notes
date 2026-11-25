@@ -197,12 +197,6 @@ describe('note editor language chip', () => {
     expect(none.toolbar().languageName).toBe('');
   });
 
-  it('shows the chip as Off when the note has spellcheck off', async () => {
-    const t = await mountChip({ ...NOTE, spellcheck: false });
-    expect(t.toolbar().languageName).toBe('Off');
-    expect(t.toolbar().spellcheckOn).toBe(false);
-  });
-
   it('applies language-select through setBlockLanguage', async () => {
     const t = await mountChip();
     await t.fire();
@@ -226,12 +220,6 @@ describe('note editor language chip', () => {
     await t.el.updateComplete;
     expect(t.saves.at(-1)).toMatchObject({ spellcheck: true });
     expect(t.toolbar().spellcheckOn).toBe(true);
-  });
-
-  it('includes spellcheck in ordinary saves', async () => {
-    const t = await mountChip();
-    t.toolbar().dispatchEvent(new CustomEvent('pin-toggle', { bubbles: true, composed: true }));
-    expect(t.saves.at(-1)).toMatchObject({ pinned: true, spellcheck: true });
   });
 
   it('sends the toggled value from every save path before the note echoes back', async () => {
@@ -283,6 +271,7 @@ describe('note editor language chip', () => {
     const toolbar = el.shadowRoot!.querySelector('home-assistant-notes-toolbar') as any;
     await toolbar.updateComplete;
     expect(toolbar.languageName).toBe('Off');
+    expect(toolbar.spellcheckOn).toBe(false);
     const items = Array.from(toolbar.shadowRoot.querySelectorAll('.group.language .item')).map((b: any) => b.textContent.trim());
     expect(items).toEqual(['Check spelling']);
   });

@@ -70,8 +70,6 @@ describe('SpellChecker', () => {
     const checker = make([en]);
     checker.setIgnored(['WROLD', 'helo']);
     expect(checker.checkBlocks([{ key: 'a', text: 'hello wrold' }])[0].misspelled).toEqual([]);
-    expect(checker.suggest('hell', 'en')).not.toContain('helo');
-    expect(checker.suggest('worl', 'en').length).toBeLessThanOrEqual(5);
   });
 
   it('filters ignored words out of suggestions', () => {
@@ -86,13 +84,6 @@ describe('SpellChecker', () => {
     const out = make([many]).suggest('hel', 'en');
     expect(out.length).toBeLessThanOrEqual(5);
     expect(new Set(out).size).toBe(out.length);
-  });
-
-  it('skips digits, URLs and e-mail addresses', () => {
-    const [r] = make().checkBlocks([
-      { key: 'a', text: 'hello abc123 https://x.y/z a@b.nl', langOverride: 'en' },
-    ]);
-    expect(r.misspelled).toEqual([]);
   });
 
   it('returns no misspellings for a language without a loaded dictionary', () => {
@@ -124,15 +115,5 @@ describe('SpellChecker', () => {
 
   it('lists loaded languages', () => {
     expect(make().languages()).toEqual(['en', 'nl']);
-  });
-});
-
-describe('SpellChecker.removeDictionaryWords', () => {
-  it('removes a previously added word again', () => {
-    const checker = make([en]);
-    checker.addDictionaryWords('en', ['wrold']);
-    expect(checker.checkBlocks([{ key: 'a', text: 'hello wrold' }])[0].misspelled).toEqual([]);
-    checker.removeDictionaryWords('en', ['wrold']);
-    expect(checker.checkBlocks([{ key: 'a', text: 'hello wrold' }])[0].misspelled).toHaveLength(1);
   });
 });

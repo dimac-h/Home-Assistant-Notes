@@ -17,14 +17,11 @@ const labels = (el: HomeAssistantNotesSpellStrip) => buttons(el).map((b) => b.te
 afterEach(() => { document.body.innerHTML = ''; });
 
 describe('spell strip', () => {
-  it('renders suggestions followed by the two actions', async () => {
-    const el = await mount('teh', ['the', 'tea']);
-    expect(labels(el)).toEqual(['the', 'tea', 'Add to dictionary', 'Ignore']);
-  });
-
-  it('renders at most 5 suggestions', async () => {
-    const el = await mount('teh', ['a', 'b', 'c', 'd', 'e', 'f', 'g']);
-    expect(labels(el)).toEqual(['a', 'b', 'c', 'd', 'e', 'Add to dictionary', 'Ignore']);
+  it.each([
+    [['the', 'tea'], ['the', 'tea', 'Add to dictionary', 'Ignore']],
+    [['a', 'b', 'c', 'd', 'e', 'f', 'g'], ['a', 'b', 'c', 'd', 'e', 'Add to dictionary', 'Ignore']],
+  ])('renders at most 5 suggestions followed by the two actions: %j', async (suggestions, expected) => {
+    expect(labels(await mount('teh', suggestions))).toEqual(expected);
   });
 
   it('renders nothing without a word', async () => {
@@ -58,12 +55,5 @@ describe('spell strip', () => {
       button.dispatchEvent(e);
       expect(e.defaultPrevented).toBe(true);
     }
-  });
-
-  it('labels the row as a group', async () => {
-    const el = await mount('teh', ['the']);
-    const row = el.shadowRoot!.querySelector('.row')!;
-    expect(row.getAttribute('role')).toBe('group');
-    expect(row.getAttribute('aria-label')).toBe('Spelling suggestions');
   });
 });

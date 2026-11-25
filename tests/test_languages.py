@@ -18,6 +18,8 @@ from custom_components.home_assistant_notes.languages import (
         ("nl_NL", ["nl", "en"]),
         ("NL-be", ["nl", "en"]),
         ("tr", ["tr", "en"]),
+        ("fr", ["fr", "en"]),
+        ("nb-NO", ["nb", "en"]),
         ("en-GB", ["en", "nl"]),
         ("en", ["en", "nl"]),
         ("xx", ["en", "nl"]),
@@ -64,12 +66,3 @@ def test_catalog_contents() -> None:
         assert lang.code == code
         assert lang.package == f"dictionary-{code}"
         assert (lang.name, lang.version, lang.tinyld) == (name, version, tinyld)
-
-
-def test_french_url_and_new_pairs() -> None:
-    assert (
-        dictionary_url(SUPPORTED_LANGUAGES["fr"], "index.aff")
-        == "https://cdn.jsdelivr.net/npm/dictionary-fr@3.0.0/index.aff"
-    )
-    assert default_pair("fr") == ["fr", "en"]
-    assert default_pair("nb-NO") == ["nb", "en"]

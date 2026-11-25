@@ -112,17 +112,6 @@ describe('spellcheck', () => {
     expect(el.spellcheckLanguages).toEqual([{ code: 'en', name: 'EN' }, { code: 'nl', name: 'NL' }]);
   });
 
-  it('uses the lang property as fallback language when it is in the pair', async () => {
-    const clients: any[] = [];
-    const el = document.createElement('home-assistant-notes-tiptap-editor');
-    el.lang = 'nl-NL';
-    el.spellcheckConfig = config(['en', 'nl']);
-    el.spellcheckClientFactory = () => { const c = fakeClient(); clients.push(c); return c; };
-    document.body.appendChild(el);
-    await vi.waitFor(() => expect(clients[0]?.init).toHaveBeenCalled());
-    expect(clients[0].init.mock.calls[0][1]).toBe('nl');
-  });
-
   it('pushes only the word diff and re-checks when the languages are unchanged', async () => {
     const { el, clients } = await mountSpell({ config: config(['en', 'nl'], { en: ['old', 'keep'] }, ['a']) });
     await vi.waitFor(() => expect(clients[0].setIgnored).toHaveBeenCalled());

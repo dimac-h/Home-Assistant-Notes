@@ -9,29 +9,13 @@ describe('tokenize', () => {
     ]);
   });
 
-  it('keeps inner apostrophes and hyphens', () => {
-    expect(tokenize("don't well-known it’s").map((t) => t.word)).toEqual([
-      "don't",
-      'well-known',
-      'it’s',
-    ]);
-  });
-
-  it('does not include leading or trailing punctuation', () => {
-    expect(tokenize("'hi' -well- ").map((t) => t.word)).toEqual(['hi', 'well']);
-  });
-
-  it('skips tokens containing digits', () => {
-    expect(tokenize('abc123 4x room5 ok').map((t) => t.word)).toEqual(['ok']);
-  });
-
-  it('skips URLs and e-mail addresses entirely', () => {
-    expect(tokenize('see https://x.y/zed and www.foo.com or a@b.nl now').map((t) => t.word)).toEqual([
-      'see',
-      'and',
-      'or',
-      'now',
-    ]);
+  it.each([
+    ['inner apostrophes and hyphens', "don't well-known it’s", ["don't", 'well-known', 'it’s']],
+    ['no leading or trailing punctuation', "'hi' -well- ", ['hi', 'well']],
+    ['tokens containing digits', 'abc123 4x room5 ok', ['ok']],
+    ['URLs and e-mail addresses', 'see https://x.y/zed and www.foo.com or a@b.nl now', ['see', 'and', 'or', 'now']],
+  ])('%s', (_name, input, words) => {
+    expect(tokenize(input).map((t) => t.word)).toEqual(words);
   });
 
   it('offsets stay correct after astral characters', () => {

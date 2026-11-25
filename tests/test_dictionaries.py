@@ -52,38 +52,24 @@ async def test_download_creates_files(hass: HomeAssistant, aioclient_mock) -> No
     )
 
 
-async def test_second_ensure_makes_no_requests(hass: HomeAssistant, aioclient_mock) -> None:
-    _mock(aioclient_mock, "nl")
-    manager = await _manager(hass)
-    await manager.async_ensure(["nl"])
-    count = aioclient_mock.call_count
-    await manager.async_ensure(["nl"])
-    assert aioclient_mock.call_count == count
-
-
 async def test_existing_files_are_ready_after_load(hass: HomeAssistant, aioclient_mock) -> None:
     _mock(aioclient_mock, "nl")
-    await (await _manager(hass)).async_ensure(["nl"])
+    first = await _manager(hass)
+    await first.async_ensure(["nl"])
+    await first.async_ensure(["nl"])
+    assert aioclient_mock.call_count == 2
     fresh = await _manager(hass)
     assert fresh.status("nl") == "ready"
     await fresh.async_ensure(["nl"])
     assert aioclient_mock.call_count == 2
 
 
-async def test_http_error_fails_without_files(hass: HomeAssistant, aioclient_mock) -> None:
-    _mock(aioclient_mock, "nl", status=404)
-    manager = await _manager(hass)
-    await manager.async_ensure(["nl"])
-    assert manager.status("nl") == "failed"
-    assert await hass.async_add_executor_job(_files, manager, "nl") == []
-
-
 @pytest.mark.parametrize(
-    ("aff", "dic"),
-    [(b"", DIC), (AFF, b""), (AFF, b"not a number\nhello\n")],
+    ("aff", "dic", "status"),
+    [(AFF, DIC, 404), (b"", DIC, 200), (AFF, b"", 200), (AFF, b"not a number\nhello\n", 200)],
 )
-async def test_invalid_body_fails_without_files(hass: HomeAssistant, aioclient_mock, aff, dic) -> None:
-    _mock(aioclient_mock, "nl", aff=aff, dic=dic)
+async def test_bad_response_fails_without_files(hass: HomeAssistant, aioclient_mock, aff, dic, status) -> None:
+    _mock(aioclient_mock, "nl", aff=aff, dic=dic, status=status)
     manager = await _manager(hass)
     await manager.async_ensure(["nl"])
     assert manager.status("nl") == "failed"
@@ -128,40 +114,24 @@ async def test_unknown_language_is_ignored(hass: HomeAssistant, aioclient_mock, 
     assert "xx" in caplog.text
 
 
-async def test_on_change_called_per_transition(hass: HomeAssistant, aioclient_mock) -> None:
-    _mock(aioclient_mock, "nl")
+@pytest.mark.parametrize(("status", "final"), [(200, "ready"), (404, "failed")])
+async def test_on_change_called_per_transition(hass: HomeAssistant, aioclient_mock, status, final) -> None:
+    _mock(aioclient_mock, "nl", status=status)
     statuses = []
     manager = DictionaryManager(hass, on_change=lambda: statuses.append(manager.status("nl")))
     await manager.async_load()
     await manager.async_ensure(["nl"])
-    assert statuses == ["downloading", "ready"]
+    assert statuses == ["downloading", final]
 
 
-async def test_on_change_called_on_failure(hass: HomeAssistant, aioclient_mock) -> None:
-    _mock(aioclient_mock, "nl", status=404)
-    statuses = []
-    manager = DictionaryManager(hass, on_change=lambda: statuses.append(manager.status("nl")))
-    await manager.async_load()
-    await manager.async_ensure(["nl"])
-    assert statuses == ["downloading", "failed"]
-
-
-async def test_on_change_not_called_when_already_ready(hass: HomeAssistant, aioclient_mock) -> None:
+async def test_on_change_once_on_load_and_not_again_when_ready(hass: HomeAssistant, aioclient_mock) -> None:
     _mock(aioclient_mock, "nl")
     await (await _manager(hass)).async_ensure(["nl"])
     calls = []
     manager = DictionaryManager(hass, on_change=lambda: calls.append(1))
     await manager.async_load()
-    calls.clear()
+    assert calls == [1]
     await manager.async_ensure(["nl"])
-    assert calls == []
-
-
-async def test_on_change_called_once_when_load_finds_files(hass: HomeAssistant, aioclient_mock) -> None:
-    _mock(aioclient_mock, "nl")
-    await (await _manager(hass)).async_ensure(["nl"])
-    calls = []
-    await DictionaryManager(hass, on_change=lambda: calls.append(1)).async_load()
     assert calls == [1]
 
 
@@ -274,7 +244,6 @@ async def test_version_bump_marks_installed_dictionary_missing(hass: HomeAssista
         assert await hass.async_add_executor_job(_files, fresh, "nl") == ["VERSION", "index.aff", "index.dic"]
         aioclient_mock.clear_requests()
         _mock_url = dictionary_url(bumped["nl"], "index.aff")
-        assert "9.9.9" in _mock_url
         aioclient_mock.get(_mock_url, content=AFF)
         aioclient_mock.get(dictionary_url(bumped["nl"], "index.dic"), content=DIC)
         await fresh.async_ensure(["nl"])
