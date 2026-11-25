@@ -49,6 +49,8 @@ export function createSpellcheckExtension(ExtensionClass: typeof Extension, opti
   let timer: ReturnType<typeof setTimeout> | undefined;
   let passes = 0;
   let warned = false;
+  let appliedEnabled = true;
+  let viewEnabled = true;
 
   /** Cache keys and cached results per block, with each block inheriting its predecessor's language. */
   function resolve(blocks: CheckedBlock[]) {
@@ -216,11 +218,17 @@ export function createSpellcheckExtension(ExtensionClass: typeof Extension, opti
         new Plugin<DecorationSet>({
           key: pluginKey,
           state: {
-            init: () => DecorationSet.empty,
+            init: () => {
+              appliedEnabled = enabled();
+              return DecorationSet.empty;
+            },
             apply(tr, old, _oldState, newState) {
-              if (!enabled()) return DecorationSet.empty;
+              const on = enabled();
+              const flipped = on !== appliedEnabled;
+              appliedEnabled = on;
+              if (!on) return DecorationSet.empty;
               const meta = tr.getMeta(pluginKey);
-              if (!tr.docChanged && !meta) return old;
+              if (!tr.docChanged && !meta && !flipped) return old;
               return build(newState.doc, tr.docChanged ? old.map(tr.mapping, tr.doc) : old);
             },
           },
@@ -229,10 +237,20 @@ export function createSpellcheckExtension(ExtensionClass: typeof Extension, opti
           },
           view(editorView) {
             view = editorView;
+            viewEnabled = enabled();
             passes = 0;
             schedule();
             return {
               update(v, prevState) {
+                // Notices enabled() toggling on any update. The integrator should
+                // still call storage.recheck() right after toggling for immediacy.
+                const on = enabled();
+                if (on !== viewEnabled) {
+                  viewEnabled = on;
+                  if (on) storage.recheck();
+                  else clearTimeout(timer);
+                  return;
+                }
                 if (!prevState.doc.eq(v.state.doc)) {
                   passes = 0;
                   schedule();

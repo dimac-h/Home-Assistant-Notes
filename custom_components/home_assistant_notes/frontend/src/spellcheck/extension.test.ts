@@ -85,14 +85,39 @@ describe('spellcheck extension', () => {
     expect(squiggles(editor)).toEqual(['wrold', 'helo', 'speling']);
   });
 
-  it('keeps the other squiggle when one of two misspelled words is corrected (regression)', async () => {
+  it.each([
+    ['same length', 'wrold', 'world', 'helo'],
+    ['growing', 'wrold', 'worldwide', 'helo'],
+    ['shrinking', 'wrold', 'a', 'helo'],
+    ['deleting the word', 'wrold', '', 'helo'],
+  ])('keeps the other squiggle exactly on its word when a correction is %s (regression)', async (_n, bad, fix, other) => {
     const { editor } = make('<p>hello wrold and helo</p>');
     await flush();
+    const from = posOf(editor, bad);
+    editor.view.dispatch(editor.state.tr.insertText(fix, from, from + bad.length));
+    expect(squiggles(editor)).toEqual([other]);
+    await flush();
+    expect(squiggles(editor)).toEqual([other]);
+  });
+
+  it('keeps the earlier squiggle when a later misspelled word is corrected', async () => {
+    const { editor } = make('<p>helo and wrold</p>');
+    await flush();
     const from = posOf(editor, 'wrold');
-    editor.view.dispatch(editor.state.tr.insertText('world', from, from + 5));
+    editor.view.dispatch(editor.state.tr.insertText('worldwide', from, from + 5));
     expect(squiggles(editor)).toEqual(['helo']);
     await flush();
     expect(squiggles(editor)).toEqual(['helo']);
+  });
+
+  it('places squiggles exactly after a non-BMP character', async () => {
+    const { editor } = make('<p>\u{1F600} hello wrold</p>');
+    await flush();
+    expect(squiggles(editor)).toEqual(['wrold']);
+    editor.view.dispatch(editor.state.tr.insertText('so ', 1));
+    expect(squiggles(editor)).toEqual(['wrold']);
+    await flush();
+    expect(squiggles(editor)).toEqual(['wrold']);
   });
 
   it('does not misplace squiggles when the text is edited while a check is in flight', async () => {
@@ -124,7 +149,7 @@ describe('spellcheck extension', () => {
     editor.commands.setContent('<p>abc def wrold</p>');
     release();
     await vi.advanceTimersByTimeAsync(0);
-    expect(squiggles(editor).every((s) => s === 'wrold')).toBe(true);
+    expect(squiggles(editor)).toEqual([]);
     await flush();
     expect(squiggles(editor)).toEqual(['wrold']);
   });
@@ -162,6 +187,22 @@ describe('spellcheck extension', () => {
     storage(editor).recheck();
     await flush();
     expect(squiggles(editor)).toEqual(['wrold']);
+  });
+
+  it('notices enabled() flipping without recheck()', async () => {
+    let on = false;
+    const { editor, client } = make('<p>wrold</p>', { enabled: () => on });
+    await flush();
+    on = true;
+    editor.commands.setTextSelection(2);
+    await flush();
+    expect(client.check).toHaveBeenCalledTimes(1);
+    expect(squiggles(editor)).toEqual(['wrold']);
+    on = false;
+    editor.commands.setTextSelection(3);
+    expect(squiggles(editor)).toEqual([]);
+    await flush();
+    expect(client.check).toHaveBeenCalledTimes(1);
   });
 
   it('sets and removes the lang attribute on the block at the caret', () => {
