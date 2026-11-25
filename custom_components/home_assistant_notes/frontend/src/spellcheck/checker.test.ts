@@ -104,6 +104,16 @@ describe('SpellChecker', () => {
     expect(checker.languages()).toEqual(['en']);
   });
 
+  it('does not inherit a previous language that has no dictionary', () => {
+    const empty: LanguageConfig = { code: 'tr', tinyld: 'tr', aff: '', dic: '' };
+    const results = make([en, empty]).checkBlocks([
+      { key: 'a', text: 'hello', langOverride: 'tr' },
+      { key: 'b', text: 'wrold' },
+    ]);
+    expect(results.map((r) => r.lang)).toEqual(['tr', 'en']);
+    expect(results[1].misspelled.length).toBe(1);
+  });
+
   it('lists loaded languages', () => {
     expect(make().languages()).toEqual(['en', 'nl']);
   });

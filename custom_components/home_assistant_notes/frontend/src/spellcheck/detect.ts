@@ -2,7 +2,11 @@ import { detectAll } from 'tinyld/light';
 import { tokenize } from './tokenize';
 
 const MIN_WORDS = 3;
-const MIN_ACCURACY = 0.5;
+// Tuned on tinyld/light samples restricted to a pair: clear text scores 1.0,
+// short clear English "We discuss the plan" scores 0.167 vs 0.066 (ratio 2.5),
+// while single-guess loan-word blocks score ~0.06 ("Zigbee Sonoff Hue").
+const MIN_ACCURACY = 0.1;
+const MIN_RATIO = 2;
 
 export function detectLanguage(
   text: string,
@@ -14,11 +18,9 @@ export function detectLanguage(
   const top = guesses[0];
   const match = top && pair.find((p) => p.tinyld === top.lang);
   if (!top || !match) return { lang: first, confident: false };
-  // tinyld's raw accuracy is low for short text even when the pair is
-  // unambiguous (e.g. 0.17 vs 0.07), so judge the top guess by its share
-  // among the pair's candidates.
-  const total = guesses.reduce((sum, g) => sum + g.accuracy, 0);
-  const share = total > 0 ? top.accuracy / total : 0;
+  const second = guesses[1];
+  const clearMargin = !second || top.accuracy >= MIN_RATIO * second.accuracy;
   const enoughWords = tokenize(text).length >= MIN_WORDS;
-  return { lang: match.code, confident: enoughWords && share >= MIN_ACCURACY };
+  const confident = enoughWords && top.accuracy >= MIN_ACCURACY && clearMargin;
+  return { lang: match.code, confident };
 }

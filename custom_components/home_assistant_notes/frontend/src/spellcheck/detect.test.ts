@@ -36,4 +36,26 @@ describe('detectLanguage', () => {
   it('returns the first pair code when nothing is detected', () => {
     expect(detectLanguage('', pair)).toEqual({ lang: 'nl', confident: false });
   });
+
+  it('keeps short clear mixed nl/en sentences confident', () => {
+    expect(detectLanguage('Ik heb een meeting', pair)).toEqual({ lang: 'nl', confident: true });
+    expect(detectLanguage('We discuss the plan', pair)).toEqual({ lang: 'en', confident: true });
+  });
+
+  it('is not confident for a 3-word loan-word block with no guess', () => {
+    expect(detectLanguage('plan meeting team', pair).confident).toBe(false);
+  });
+
+  it('is not confident for a single low-accuracy guess', () => {
+    expect(detectLanguage('Zigbee Sonoff Hue', pair)).toEqual({ lang: 'en', confident: false });
+  });
+
+  it('stays confident for clear Turkish/English samples', () => {
+    const tr = [
+      { code: 'tr', tinyld: 'tr' },
+      { code: 'en', tinyld: 'en' },
+    ];
+    expect(detectLanguage('Yarın market alışverişi yapacağım', tr).confident).toBe(true);
+    expect(detectLanguage('We discuss the plan', tr)).toEqual({ lang: 'en', confident: true });
+  });
 });

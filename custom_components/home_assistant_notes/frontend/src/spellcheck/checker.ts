@@ -40,8 +40,8 @@ export class SpellChecker {
     let previous: string | undefined;
     for (const block of blocks) {
       const lang = this.resolveLanguage(block, previous);
-      previous = lang;
       const dict = this.dictionaries.get(lang);
+      if (dict) previous = lang;
       const misspelled = dict
         ? tokenize(block.text).filter(
             (t) => !dict.correct(t.word) && !this.ignored.has(t.word.toLowerCase()),
@@ -72,8 +72,13 @@ export class SpellChecker {
     if (this.inPair(block.langOverride)) return block.langOverride;
     const detected = detectLanguage(block.text, this.pair);
     if (detected.confident) return detected.lang;
-    if (previous) return previous;
-    if (this.inPair(block.inheritLang)) return block.inheritLang;
-    return this.fallback;
+    // Prefer languages that actually have a dictionary; fall back to any
+    // pair language only when nothing else is available.
+    const candidates = [previous, block.inheritLang, this.fallback, ...this.dictionaries.keys()];
+    return (
+      candidates.find((c) => this.inPair(c) && this.dictionaries.has(c)) ??
+      candidates.find((c) => this.inPair(c)) ??
+      this.fallback
+    );
   }
 }
