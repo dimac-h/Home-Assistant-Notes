@@ -67,6 +67,34 @@ describe('checklist toggle', () => {
   });
 });
 
+describe('indent / outdent', () => {
+  const depth = (el: HomeAssistantNotesTiptapEditor) => el.shadowRoot!.querySelectorAll('li li').length;
+  const caretIn = (el: HomeAssistantNotesTiptapEditor, text: string) => {
+    const editor = editorOf(el);
+    let pos = -1;
+    editor.state.doc.descendants((node: any, p: number) => {
+      if (node.isText && node.text === text) pos = p + 1;
+    });
+    editor.commands.setTextSelection(pos);
+  };
+
+  it('indents a checklist item under the previous one and outdents it again', async () => {
+    const el = await mount(taskList([['a', false], ['b', false]]));
+    caretIn(el, 'b');
+    el.runAction('indent');
+    expect(depth(el)).toBe(1);
+    el.runAction('outdent');
+    expect(depth(el)).toBe(0);
+  });
+
+  it('still indents a bullet list item', async () => {
+    const el = await mount('<ul><li><p>a</p></li><li><p>b</p></li></ul>');
+    caretIn(el, 'b');
+    el.runAction('indent');
+    expect(depth(el)).toBe(1);
+  });
+});
+
 describe('scroll guard after a checklist toggle', () => {
   // jsdom has no layout, so mount the editor inside a fake scrollable ancestor.
   async function mountInScroller(content: string) {

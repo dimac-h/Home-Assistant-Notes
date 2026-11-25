@@ -39,8 +39,26 @@ export class HomeAssistantNotesTiptapEditor extends LitElement {
       align-items: flex-start;
       margin: 1em 0;
     }
+    /* A nested list sits inside its parent row's content block, where margins
+       don't collapse with the parent's. Without this, the nested list's own
+       margin plus its last row's bottom margin stack on top of the parent's
+       and push the following rows down. */
+    .ProseMirror ul[data-type="taskList"] li ul[data-type="taskList"] {
+      margin: 0;
+    }
+    .ProseMirror ul[data-type="taskList"] li ul[data-type="taskList"] li {
+      margin: 1em 0 0;
+    }
+    /* The label is exactly one text line tall (1lh), centring the checkbox in
+       it. Its natural height (checkbox + margins, baseline-aligned) can differ
+       from the text line by a fraction of a pixel; a plain row is as tall as
+       the taller of the two, but a row with a sublist is as tall as its text
+       plus the sublist, so nesting an item would shift everything below it. */
     .ProseMirror ul[data-type="taskList"] li > label {
       flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      height: 1lh;
       margin-right: 0.5rem;
       user-select: none;
     }
@@ -273,6 +291,10 @@ export class HomeAssistantNotesTiptapEditor extends LitElement {
     return this._editor?.getAttributes('link').href ?? '';
   }
 
+  private _listItemType(): 'taskItem' | 'listItem' {
+    return this._editor?.isActive('taskItem') ? 'taskItem' : 'listItem';
+  }
+
   runAction(action: ToolbarAction, payload?: { href?: string }): void {
     const chain = this._editor?.chain().focus();
     if (!chain) return;
@@ -291,8 +313,8 @@ export class HomeAssistantNotesTiptapEditor extends LitElement {
       case 'bulletList': chain.toggleBulletList().run(); break;
       case 'orderedList': chain.toggleOrderedList().run(); break;
       case 'taskList': chain.toggleTaskList().run(); break;
-      case 'indent': chain.sinkListItem('listItem').run(); break;
-      case 'outdent': chain.liftListItem('listItem').run(); break;
+      case 'indent': chain.sinkListItem(this._listItemType()).run(); break;
+      case 'outdent': chain.liftListItem(this._listItemType()).run(); break;
       case 'setLink': if (payload?.href) chain.setLink({ href: payload.href }).run(); break;
       case 'unsetLink': chain.unsetLink().run(); break;
     }
