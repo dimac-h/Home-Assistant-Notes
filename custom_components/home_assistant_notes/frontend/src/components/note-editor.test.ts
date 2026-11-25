@@ -113,4 +113,46 @@ describe('note editor spell strip', () => {
     expect(added).toHaveBeenCalledWith({ lang: 'nl', word: 'teh' });
     expect(ignored).toHaveBeenCalledWith({ word: 'teh' });
   });
+
+  it('clears the old word while suggestions for the new word are pending, and ignores clicks', async () => {
+    const t = await mount();
+    t.state.hit = { word: 'teh', from: 4, to: 7, lang: 'en' };
+    await t.fire();
+    let release!: (s: string[]) => void;
+    t.tiptap.suggest = vi.fn(() => new Promise<string[]>((r) => { release = r; }));
+    const strip = t.strip();
+    t.state.hit = { word: 'adn', from: 10, to: 13, lang: 'en' };
+    t.tiptap.dispatchEvent(new CustomEvent('spellcheck-state'));
+    await t.el.updateComplete;
+    expect(strip.hasAttribute('hidden')).toBe(true);
+    expect(strip.word).toBeNull();
+    strip.dispatchEvent(new CustomEvent('spell-suggestion', { detail: { suggestion: 'teh-fix' }, bubbles: true, composed: true }));
+    expect(t.tiptap.replaceRange).not.toHaveBeenCalled();
+    release(['and']);
+    await new Promise((r) => setTimeout(r, 0));
+    await t.el.updateComplete;
+    await strip.updateComplete;
+    expect(strip.word).toBe('adn');
+    expect(t.labels()).toEqual(['and', 'Add to dictionary', 'Ignore']);
+  });
+
+  it('resets the strip when another note is opened', async () => {
+    const t = await mount();
+    t.state.hit = { word: 'teh', from: 4, to: 7, lang: 'en' };
+    await t.fire();
+    t.el.note = { ...NOTE, note_id: 'n2' };
+    await t.el.updateComplete;
+    expect(t.strip().word).toBeNull();
+    expect(t.strip().hasAttribute('hidden')).toBe(true);
+  });
+
+  it('shows the strip without suggestions when suggest rejects', async () => {
+    const t = await mount();
+    t.tiptap.suggest = vi.fn(async () => { throw new Error('worker died'); });
+    t.state.hit = { word: 'teh', from: 4, to: 7, lang: 'en' };
+    await t.fire();
+    expect(t.strip().word).toBe('teh');
+    expect(t.strip().suggestions).toEqual([]);
+    expect(t.labels()).toEqual(['Add to dictionary', 'Ignore']);
+  });
 });

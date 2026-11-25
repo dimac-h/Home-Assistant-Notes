@@ -4,7 +4,7 @@ import { customElement, property } from 'lit/decorators.js';
 const MAX_SUGGESTIONS = 5;
 
 // One scrollable row of fixes for the misspelled word at the caret. Buttons
-// swallow mousedown so tapping them never moves focus out of the editor
+// cancel mousedown so tapping them never moves focus out of the editor
 // (which would close the on-screen keyboard), like the toolbar's buttons.
 @customElement('home-assistant-notes-spell-strip')
 export class HomeAssistantNotesSpellStrip extends LitElement {
@@ -37,13 +37,13 @@ export class HomeAssistantNotesSpellStrip extends LitElement {
     if (!this.word) return nothing;
     const suggestions = this.suggestions.slice(0, MAX_SUGGESTIONS);
     return html`
-      <div class="row" @mousedown=${this._keepFocus} @pointerdown=${this._keepFocus}>
+      <div class="row" role="group" aria-label="Spelling suggestions">
         ${suggestions.length
-          ? suggestions.map((s) => html`<ha-button class="suggestion" size="s" appearance="filled" variant="neutral" @click=${() => this._emit('spell-suggestion', { suggestion: s })}>${s}</ha-button>`)
+          ? suggestions.map((s) => html`<ha-button class="suggestion" size="s" appearance="filled" variant="neutral" @mousedown=${this._keepFocus} @click=${() => this._emit('spell-suggestion', { suggestion: s })}>${s}</ha-button>`)
           : html`<span class="none">No suggestions</span>`}
         <span class="sep"></span>
-        <ha-button class="add" size="s" appearance="plain" variant="neutral" @click=${() => this._emit('spell-add-dictionary')}>Add to dictionary</ha-button>
-        <ha-button class="ignore" size="s" appearance="plain" variant="neutral" @click=${() => this._emit('spell-ignore')}>Ignore</ha-button>
+        <ha-button class="add" size="s" appearance="plain" variant="neutral" @mousedown=${this._keepFocus} @click=${() => this._emit('spell-add-dictionary')}>Add to dictionary</ha-button>
+        <ha-button class="ignore" size="s" appearance="plain" variant="neutral" @mousedown=${this._keepFocus} @click=${() => this._emit('spell-ignore')}>Ignore</ha-button>
       </div>
     `;
   }

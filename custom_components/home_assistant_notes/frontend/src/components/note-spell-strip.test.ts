@@ -51,12 +51,19 @@ describe('spell strip', () => {
     expect(seen.every((e) => e.composed && e.bubbles)).toBe(true);
   });
 
-  it('keeps editor focus by cancelling mousedown and pointerdown', async () => {
+  it('keeps editor focus by cancelling mousedown on every button, like the toolbar', async () => {
     const el = await mount('teh', ['the']);
-    for (const type of ['mousedown', 'pointerdown']) {
-      const e = new Event(type, { bubbles: true, cancelable: true });
-      buttons(el)[0].dispatchEvent(e);
+    for (const button of buttons(el)) {
+      const e = new Event('mousedown', { bubbles: true, cancelable: true });
+      button.dispatchEvent(e);
       expect(e.defaultPrevented).toBe(true);
     }
+  });
+
+  it('labels the row as a group', async () => {
+    const el = await mount('teh', ['the']);
+    const row = el.shadowRoot!.querySelector('.row')!;
+    expect(row.getAttribute('role')).toBe('group');
+    expect(row.getAttribute('aria-label')).toBe('Spelling suggestions');
   });
 });

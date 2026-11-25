@@ -122,6 +122,9 @@ export class HomeAssistantNotesEditor extends LitElement {
     if (!changed.has('note')) return;
     const previous = changed.get('note') as Note | null | undefined;
     if (previous?.note_id === this.note?.note_id) return;
+    this._spellKey = '';
+    this._spellWord = null;
+    this._spellSuggestions = [];
     if (previous) this._flushSorted(previous);
     this._displayContent = this.note ? sortTaskListsHtml(this.note.content || '') : '';
   }
@@ -242,6 +245,9 @@ export class HomeAssistantNotesEditor extends LitElement {
     const key = `${hit.lang}:${hit.word}`;
     if (key === this._spellKey) return;
     this._spellKey = key;
+    // Drop the previous word now so the strip never offers fixes for a word the caret left.
+    this._spellWord = null;
+    this._spellSuggestions = [];
     let suggestions: string[] = [];
     try {
       suggestions = (await this._tiptap?.suggest(hit.word, hit.lang)) ?? [];
