@@ -36,6 +36,8 @@ declare module '@tiptap/core' {
 
 const DEBOUNCE_MS = 300;
 const MAX_PASSES = 5;
+/** How often applying results may be postponed while an IME composition is active (~6 s). */
+const MAX_COMPOSING_DEFERRALS = 20;
 export const SPELLCHECK_STATE_EVENT = 'spellcheck-state';
 
 type CachedResult = Pick<BlockResult, 'lang' | 'misspelled'>;
@@ -48,6 +50,8 @@ export function createSpellcheckExtension(ExtensionClass: typeof Extension, opti
   let view: EditorView | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let passes = 0;
+  let deferrals = 0;
+  let needsApply = false;
   let warned = false;
   let appliedEnabled = true;
   let viewEnabled = true;
@@ -102,7 +106,10 @@ export function createSpellcheckExtension(ExtensionClass: typeof Extension, opti
     const entries = resolve(collectBlocks(current.state.doc, pair));
     const seen = new Set<string>();
     const pending = entries.filter((e) => !e.result && !seen.has(e.key) && seen.add(e.key));
-    if (!pending.length) return;
+    if (!pending.length) {
+      applyResults(current);
+      return;
+    }
     passes++;
     const request: BlockRequest[] = pending.map((e) => ({
       key: e.key,
@@ -133,6 +140,23 @@ export function createSpellcheckExtension(ExtensionClass: typeof Extension, opti
       }
       previous = own?.lang;
     }
+    needsApply = true;
+    applyResults(current);
+  }
+
+  /**
+   * Rebuilds the decorations from the cache. Rewriting the DOM of the word under an
+   * active IME composition (Android keyboards) resets it, so while composing only the
+   * cache is filled and the dispatch is retried a bounded number of times.
+   */
+  function applyResults(current: EditorView) {
+    if (!needsApply || view !== current) return;
+    if (current.composing) {
+      if (deferrals++ < MAX_COMPOSING_DEFERRALS) schedule();
+      return;
+    }
+    needsApply = false;
+    deferrals = 0;
     current.dispatch(current.state.tr.setMeta(pluginKey, 'results').setMeta('addToHistory', false));
     notify();
     if (passes < MAX_PASSES && resolve(collectBlocks(current.state.doc, pair)).some((e) => !e.result)) schedule();
@@ -171,6 +195,8 @@ export function createSpellcheckExtension(ExtensionClass: typeof Extension, opti
     recheck(): void {
       cache.clear();
       passes = 0;
+      deferrals = 0;
+      needsApply = false;
       if (!view) return;
       view.dispatch(view.state.tr.setMeta(pluginKey, 'recheck').setMeta('addToHistory', false));
       notify();
@@ -253,6 +279,7 @@ export function createSpellcheckExtension(ExtensionClass: typeof Extension, opti
                 }
                 if (!prevState.doc.eq(v.state.doc)) {
                   passes = 0;
+                  deferrals = 0;
                   schedule();
                 }
                 if (!prevState.selection.eq(v.state.selection)) notify();

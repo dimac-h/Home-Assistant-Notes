@@ -283,4 +283,39 @@ describe('spellcheck extension', () => {
     expect(warn).toHaveBeenCalledTimes(1);
     warn.mockRestore();
   });
+
+  describe('IME composition', () => {
+    function stubComposing(editor: Editor) {
+      const state = { composing: true };
+      Object.defineProperty(editor.view, 'composing', { get: () => state.composing, configurable: true });
+      return state;
+    }
+
+    it('does not dispatch decorations while composing, applies them once composition ends', async () => {
+      const { editor, client } = make('<p>hello wrold</p>');
+      const state = stubComposing(editor);
+      const dispatch = vi.spyOn(editor.view, 'dispatch');
+      await flush();
+      expect(client.check).toHaveBeenCalledTimes(1); // the cache is still filled
+      expect(dispatch).not.toHaveBeenCalled();
+      expect(squiggles(editor)).toEqual([]);
+      state.composing = false;
+      await flush();
+      expect(squiggles(editor)).toEqual(['wrold']);
+      expect(client.check).toHaveBeenCalledTimes(1); // no second request for cached text
+    });
+
+    it('gives up after a bounded number of deferrals and does no work after destroy', async () => {
+      const { editor, client } = make('<p>hello wrold</p>');
+      stubComposing(editor);
+      const dispatch = vi.spyOn(editor.view, 'dispatch');
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(dispatch).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
+      expect(client.check).toHaveBeenCalledTimes(1);
+      editor.destroy();
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(client.check).toHaveBeenCalledTimes(1);
+    });
+  });
 });
