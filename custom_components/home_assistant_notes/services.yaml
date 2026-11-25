@@ -39,6 +39,13 @@ create_note:
       example: ["shopping", "groceries"]
       selector:
         object:
+    spellcheck:
+      name: Spellcheck
+      description: Whether spelling should be checked in the note
+      required: false
+      default: true
+      selector:
+        boolean:
 
 update_note:
   name: Update Note
@@ -82,6 +89,12 @@ update_note:
       required: false
       selector:
         object:
+    spellcheck:
+      name: Spellcheck
+      description: Whether spelling should be checked in the note
+      required: false
+      selector:
+        boolean:
 
 delete_note:
   name: Delete Note

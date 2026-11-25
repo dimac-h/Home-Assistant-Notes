@@ -29,6 +29,7 @@ from .const import (
     ATTR_CONTENT,
     ATTR_COLOR,
     ATTR_PINNED,
+    ATTR_SPELLCHECK,
     ATTR_TAGS,
     DEFAULT_COLOR,
     PANEL_TITLE,
@@ -54,6 +55,7 @@ CREATE_NOTE_SCHEMA = vol.Schema({
     vol.Optional(ATTR_COLOR, default=DEFAULT_COLOR): vol.Match(r'^#[0-9a-fA-F]{3}$|^#[0-9a-fA-F]{6}$'),
     vol.Optional(ATTR_PINNED, default=False): cv.boolean,
     vol.Optional(ATTR_TAGS, default=list): [cv.string],
+    vol.Optional(ATTR_SPELLCHECK, default=True): cv.boolean,
 })
 
 UPDATE_NOTE_SCHEMA = vol.Schema({
@@ -63,6 +65,7 @@ UPDATE_NOTE_SCHEMA = vol.Schema({
     vol.Optional(ATTR_COLOR): vol.Match(r'^#[0-9a-fA-F]{3}$|^#[0-9a-fA-F]{6}$'),
     vol.Optional(ATTR_PINNED): cv.boolean,
     vol.Optional(ATTR_TAGS): [cv.string],
+    vol.Optional(ATTR_SPELLCHECK): cv.boolean,
 })
 
 DELETE_NOTE_SCHEMA = vol.Schema({
@@ -92,6 +95,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             color=call.data[ATTR_COLOR],
             pinned=call.data[ATTR_PINNED],
             tags=call.data[ATTR_TAGS],
+            spellcheck=call.data[ATTR_SPELLCHECK],
         )
         hass.bus.async_fire(f"{DOMAIN}_note_created", note)
         return note
@@ -105,6 +109,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             color=call.data.get(ATTR_COLOR),
             pinned=call.data.get(ATTR_PINNED),
             tags=call.data.get(ATTR_TAGS),
+            spellcheck=call.data.get(ATTR_SPELLCHECK),
         )
         if note is None:
             raise HomeAssistantError(f"Note {call.data[ATTR_NOTE_ID]} not found")

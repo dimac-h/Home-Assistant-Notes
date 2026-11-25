@@ -98,6 +98,7 @@ Services don't return values directly. Results are communicated by firing HA bus
     "content": str,
     "color": str,        # hex code, default "#FFEB3B"
     "pinned": bool,
+    "spellcheck": bool,  # default True
     "created": str,      # ISO 8601
     "modified": str,     # ISO 8601
     "tags": list[str],

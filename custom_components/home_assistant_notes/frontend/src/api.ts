@@ -6,6 +6,7 @@ export interface Note {
   content: string;
   color: string;
   pinned: boolean;
+  spellcheck: boolean;
   created: string;
   modified: string;
   tags: string[];
@@ -38,7 +39,7 @@ export async function createNote(
 
 export async function updateNote(
   hass: HomeAssistant,
-  params: { note_id: string; title?: string; content?: string; color?: string; pinned?: boolean },
+  params: { note_id: string; title?: string; content?: string; color?: string; pinned?: boolean; spellcheck?: boolean },
 ): Promise<void> {
   await hass.callService('home_assistant_notes', 'update_note', params);
 }

@@ -15,6 +15,7 @@ from .const import (
     ATTR_CONTENT,
     ATTR_COLOR,
     ATTR_PINNED,
+    ATTR_SPELLCHECK,
     ATTR_CREATED,
     ATTR_MODIFIED,
     ATTR_TAGS,
@@ -40,6 +41,9 @@ class NotesStorage:
         data = await self._store.async_load()
         if data is not None:
             self._data = data.get("notes", {})
+            # Notes stored before the spellcheck flag existed read as enabled
+            for note in self._data.values():
+                note.setdefault(ATTR_SPELLCHECK, True)
         else:
             self._data = {}
         _LOGGER.debug("Loaded %d notes from storage", len(self._data))
@@ -56,6 +60,7 @@ class NotesStorage:
         color: str = DEFAULT_COLOR,
         pinned: bool = False,
         tags: list[str] | None = None,
+        spellcheck: bool = True,
     ) -> dict[str, Any]:
         """Create a new note."""
         note_id = str(uuid.uuid4())
@@ -70,6 +75,7 @@ class NotesStorage:
             ATTR_CREATED: now,
             ATTR_MODIFIED: now,
             ATTR_TAGS: tags or [],
+            ATTR_SPELLCHECK: spellcheck,
         }
 
         self._data[note_id] = note
@@ -86,6 +92,7 @@ class NotesStorage:
         color: str | None = None,
         pinned: bool | None = None,
         tags: list[str] | None = None,
+        spellcheck: bool | None = None,
     ) -> dict[str, Any] | None:
         """Update an existing note."""
         if note_id not in self._data:
@@ -104,6 +111,8 @@ class NotesStorage:
             note[ATTR_PINNED] = pinned
         if tags is not None:
             note[ATTR_TAGS] = tags
+        if spellcheck is not None:
+            note[ATTR_SPELLCHECK] = spellcheck
 
         note[ATTR_MODIFIED] = dt_util.utcnow().isoformat()
 

@@ -87,6 +87,24 @@ async def test_update_note_service_fires_event(hass: HomeAssistant, setup_integr
     assert events[0].data["title"] == "B"
 
 
+async def test_update_note_service_accepts_spellcheck(
+    hass: HomeAssistant, setup_integration: MockConfigEntry
+) -> None:
+    created = await hass.services.async_call(
+        DOMAIN, "create_note", {"title": "A"}, blocking=True, return_response=True,
+    )
+    assert created["spellcheck"] is True
+    events = []
+    hass.bus.async_listen(f"{DOMAIN}_note_updated", events.append)
+
+    await hass.services.async_call(
+        DOMAIN, "update_note", {"note_id": created["note_id"], "spellcheck": False}, blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    assert events[0].data["spellcheck"] is False
+
+
 async def test_update_note_service_missing_note_raises(
     hass: HomeAssistant, setup_integration: MockConfigEntry
 ) -> None:
