@@ -14,6 +14,7 @@ from custom_components.home_assistant_notes.__init__ import (
 )
 from custom_components.home_assistant_notes.const import CARD_MODULE_URL, DOMAIN
 from custom_components.home_assistant_notes.storage import NotesStorage
+from custom_components.home_assistant_notes.words import WordsStorage
 
 if TYPE_CHECKING:
     from unittest.mock import MagicMock
@@ -151,12 +152,6 @@ async def test_unload_removes_card_module(
     remove_extra_js_url_mock.assert_called_once_with(hass, CARD_MODULE_URL)
 
 
-async def test_entry_exposes_storage_as_runtime_data(
-    setup_integration: MockConfigEntry,
-) -> None:
-    assert isinstance(setup_integration.runtime_data, NotesStorage)
-
-
 # ---------------------------------------------------------------------------
 # CREATE_NOTE_SCHEMA
 # ---------------------------------------------------------------------------
@@ -251,3 +246,41 @@ class TestDeleteNoteSchema:
     def test_missing_note_id_raises(self):
         with pytest.raises(vol.Invalid):
             DELETE_NOTE_SCHEMA({})
+
+
+# ---------------------------------------------------------------------------
+# Word list services
+# ---------------------------------------------------------------------------
+
+async def test_entry_runtime_data_holds_notes_and_words(setup_integration: MockConfigEntry) -> None:
+    assert isinstance(setup_integration.runtime_data.notes, NotesStorage)
+    assert isinstance(setup_integration.runtime_data.words, WordsStorage)
+
+
+async def test_word_services_update_store_and_fire_event(
+    hass: HomeAssistant, setup_integration: MockConfigEntry
+) -> None:
+    events = []
+    hass.bus.async_listen(f"{DOMAIN}_words_changed", events.append)
+
+    async def call(service: str, data: dict) -> None:
+        await hass.services.async_call(DOMAIN, service, data, blocking=True)
+        await hass.async_block_till_done()
+
+    await call("add_dictionary_word", {"lang": "tr", "word": "Ayşe"})
+    assert events[-1].data == {"dictionary": {"tr": ["ayşe"]}, "ignored": []}
+    await call("add_ignored_word", {"word": "Zigbee"})
+    assert events[-1].data == {"dictionary": {"tr": ["ayşe"]}, "ignored": ["zigbee"]}
+    assert setup_integration.runtime_data.words.get_lists() == events[-1].data
+    await call("remove_dictionary_word", {"lang": "tr", "word": "ayşe"})
+    assert events[-1].data == {"dictionary": {}, "ignored": ["zigbee"]}
+    await call("remove_ignored_word", {"word": "zigbee"})
+    assert events[-1].data == {"dictionary": {}, "ignored": []}
+    assert len(events) == 4
+
+
+async def test_word_service_rejects_empty_word(
+    hass: HomeAssistant, setup_integration: MockConfigEntry
+) -> None:
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(DOMAIN, "add_ignored_word", {"word": "  "}, blocking=True)

@@ -111,3 +111,65 @@ delete_note:
 get_notes:
   name: Get Notes
   description: Get all notes. Returns a response object with a "notes" array.
+
+add_dictionary_word:
+  name: Add Dictionary Word
+  description: Add a word to the personal spellcheck dictionary of a language
+  fields:
+    lang:
+      name: Language
+      description: The language code of the dictionary
+      required: true
+      example: "en"
+      selector:
+        text:
+    word:
+      name: Word
+      description: The word to add
+      required: true
+      example: "Zigbee"
+      selector:
+        text:
+
+remove_dictionary_word:
+  name: Remove Dictionary Word
+  description: Remove a word from the personal spellcheck dictionary of a language
+  fields:
+    lang:
+      name: Language
+      description: The language code of the dictionary
+      required: true
+      example: "en"
+      selector:
+        text:
+    word:
+      name: Word
+      description: The word to remove
+      required: true
+      example: "Zigbee"
+      selector:
+        text:
+
+add_ignored_word:
+  name: Add Ignored Word
+  description: Add a word to the spellcheck ignore list (applies to every language)
+  fields:
+    word:
+      name: Word
+      description: The word to ignore
+      required: true
+      example: "Zigbee"
+      selector:
+        text:
+
+remove_ignored_word:
+  name: Remove Ignored Word
+  description: Remove a word from the spellcheck ignore list
+  fields:
+    word:
+      name: Word
+      description: The word to stop ignoring
+      required: true
+      example: "Zigbee"
+      selector:
+        text:

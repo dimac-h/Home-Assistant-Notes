@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
+
 import voluptuous as vol
 
 from homeassistant.components.frontend import (
@@ -31,6 +33,13 @@ from .const import (
     ATTR_PINNED,
     ATTR_SPELLCHECK,
     ATTR_TAGS,
+    ATTR_LANG,
+    ATTR_WORD,
+    EVENT_WORDS_CHANGED,
+    SERVICE_ADD_DICTIONARY_WORD,
+    SERVICE_REMOVE_DICTIONARY_WORD,
+    SERVICE_ADD_IGNORED_WORD,
+    SERVICE_REMOVE_IGNORED_WORD,
     DEFAULT_COLOR,
     PANEL_TITLE,
     PANEL_ICON,
@@ -38,10 +47,21 @@ from .const import (
     PANEL_COMPONENT_NAME,
 )
 from .storage import NotesStorage
+from .words import WordsStorage
 
 _LOGGER = logging.getLogger(__name__)
 
-type NotesConfigEntry = ConfigEntry[NotesStorage]
+
+
+@dataclass
+class RuntimeData:
+    """Per-entry runtime objects."""
+
+    notes: NotesStorage
+    words: WordsStorage
+
+
+type NotesConfigEntry = ConfigEntry[RuntimeData]
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
@@ -72,9 +92,18 @@ DELETE_NOTE_SCHEMA = vol.Schema({
     vol.Required(ATTR_NOTE_ID): cv.string,
 })
 
+ADD_REMOVE_DICTIONARY_WORD_SCHEMA = vol.Schema({
+    vol.Required(ATTR_LANG): cv.string,
+    vol.Required(ATTR_WORD): cv.string,
+})
 
-def _get_storage(hass: HomeAssistant) -> NotesStorage:
-    """Return the storage of the loaded config entry, or raise if there is none."""
+IGNORED_WORD_SCHEMA = vol.Schema({
+    vol.Required(ATTR_WORD): cv.string,
+})
+
+
+def _get_runtime_data(hass: HomeAssistant) -> RuntimeData:
+    """Return the runtime data of the loaded config entry, or raise if there is none."""
     for entry in hass.config_entries.async_entries(DOMAIN):
         if entry.state is ConfigEntryState.LOADED:
             return entry.runtime_data
@@ -82,6 +111,16 @@ def _get_storage(hass: HomeAssistant) -> NotesStorage:
         translation_domain=DOMAIN,
         translation_key="not_loaded",
     )
+
+
+def _get_storage(hass: HomeAssistant) -> NotesStorage:
+    """Return the notes storage of the loaded config entry."""
+    return _get_runtime_data(hass).notes
+
+
+def _get_words(hass: HomeAssistant) -> WordsStorage:
+    """Return the word lists storage of the loaded config entry."""
+    return _get_runtime_data(hass).words
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -130,6 +169,28 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         notes = await _get_storage(hass).async_get_all_notes()
         return {"notes": notes}
 
+    async def _change_words(coro) -> None:
+        """Await a word list change, then broadcast the new lists."""
+        try:
+            await coro
+        except ValueError as err:
+            raise ServiceValidationError(str(err)) from err
+        hass.bus.async_fire(EVENT_WORDS_CHANGED, _get_words(hass).get_lists())
+
+    async def handle_add_dictionary_word(call: ServiceCall) -> None:
+        await _change_words(_get_words(hass).async_add_dictionary_word(
+            call.data[ATTR_LANG], call.data[ATTR_WORD]))
+
+    async def handle_remove_dictionary_word(call: ServiceCall) -> None:
+        await _change_words(_get_words(hass).async_remove_dictionary_word(
+            call.data[ATTR_LANG], call.data[ATTR_WORD]))
+
+    async def handle_add_ignored_word(call: ServiceCall) -> None:
+        await _change_words(_get_words(hass).async_add_ignored_word(call.data[ATTR_WORD]))
+
+    async def handle_remove_ignored_word(call: ServiceCall) -> None:
+        await _change_words(_get_words(hass).async_remove_ignored_word(call.data[ATTR_WORD]))
+
     hass.services.async_register(
         DOMAIN, SERVICE_CREATE_NOTE, handle_create_note,
         schema=CREATE_NOTE_SCHEMA,
@@ -144,6 +205,13 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     hass.services.async_register(
         DOMAIN, SERVICE_GET_NOTES, handle_get_notes, supports_response=SupportsResponse.ONLY
     )
+    for name, handler, schema in (
+        (SERVICE_ADD_DICTIONARY_WORD, handle_add_dictionary_word, ADD_REMOVE_DICTIONARY_WORD_SCHEMA),
+        (SERVICE_REMOVE_DICTIONARY_WORD, handle_remove_dictionary_word, ADD_REMOVE_DICTIONARY_WORD_SCHEMA),
+        (SERVICE_ADD_IGNORED_WORD, handle_add_ignored_word, IGNORED_WORD_SCHEMA),
+        (SERVICE_REMOVE_IGNORED_WORD, handle_remove_ignored_word, IGNORED_WORD_SCHEMA),
+    ):
+        hass.services.async_register(DOMAIN, name, handler, schema=schema)
     return True
 
 
@@ -151,7 +219,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: NotesConfigEntry) -> boo
     """Set up Home Assistant Notes from a config entry."""
     notes_storage = NotesStorage(hass)
     await notes_storage.async_load()
-    entry.runtime_data = notes_storage
+    words_storage = WordsStorage(hass)
+    await words_storage.async_load()
+    entry.runtime_data = RuntimeData(notes=notes_storage, words=words_storage)
 
     # Register frontend panel
     if "/home_assistant_notes_panel" not in _REGISTERED_STATIC_PATHS:

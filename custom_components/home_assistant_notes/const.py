@@ -44,3 +44,14 @@ PANEL_COMPONENT_NAME = "home-assistant-notes-panel"
 
 # Lovelace card module, served from the same static path as the panel
 CARD_MODULE_URL = "/home_assistant_notes_panel/home-assistant-notes-card.js"
+
+# Shared spellcheck word lists
+WORDS_STORAGE_VERSION = 1
+WORDS_STORAGE_KEY = f"{DOMAIN}.words"
+SERVICE_ADD_DICTIONARY_WORD = "add_dictionary_word"
+SERVICE_REMOVE_DICTIONARY_WORD = "remove_dictionary_word"
+SERVICE_ADD_IGNORED_WORD = "add_ignored_word"
+SERVICE_REMOVE_IGNORED_WORD = "remove_ignored_word"
+ATTR_LANG = "lang"
+ATTR_WORD = "word"
+EVENT_WORDS_CHANGED = f"{DOMAIN}_words_changed"
