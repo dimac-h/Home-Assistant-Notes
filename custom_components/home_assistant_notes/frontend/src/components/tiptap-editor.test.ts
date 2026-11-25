@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import './tiptap-editor';
+import { HomeAssistantNotesTiptapEditor as HomeAssistantNotesTiptapEditorClass } from './tiptap-editor';
 import type { HomeAssistantNotesTiptapEditor } from './tiptap-editor';
 import { DEBUG_EVENT } from '../debug-log';
 import * as extensionModule from '../spellcheck/extension';
@@ -550,5 +551,14 @@ describe('opt-in caret logger', () => {
     document.removeEventListener(DEBUG_EVENT, listener);
     expect(listener).not.toHaveBeenCalled();
     expect(ed).toBeTruthy();
+  });
+});
+
+describe('spellcheck squiggle styles', () => {
+  it('styles .spell-error as a wavy underline in the editor shadow root', async () => {
+    const text = String((HomeAssistantNotesTiptapEditorClass as any).styles.cssText);
+    expect(text).toMatch(/\.ProseMirror \.spell-error\s*\{[^}]*underline wavy[^}]*\}/);
+    expect(text).toMatch(/text-decoration-color:\s*var\(--error-color\)/);
+    expect(text).toContain('text-decoration-skip-ink: none');
   });
 });

@@ -43,7 +43,7 @@ Go to **Settings → Devices & Services → Add Integration** and search for *Ho
 
 ## Actions
 
-The integration provides four actions (services). They are available in the Actions picker, automations, scripts and Developer Tools.
+The integration provides eight actions (services): four for notes and four for the spellcheck word lists. They are available in the Actions picker, automations, scripts and Developer Tools.
 
 | Action | Fields | Returns |
 |---|---|---|
@@ -51,8 +51,12 @@ The integration provides four actions (services). They are available in the Acti
 | `home_assistant_notes.update_note` | `note_id` (required), `title`, `content`, `color`, `pinned`, `tags` | Nothing. Fails if the note doesn't exist |
 | `home_assistant_notes.delete_note` | `note_id` (required) | Nothing. Fails if the note doesn't exist |
 | `home_assistant_notes.get_notes` | none | `{ notes: [...] }` (response only) |
+| `home_assistant_notes.add_dictionary_word` | `lang` (required), `word` (required) | Nothing. Adds a word to the personal dictionary of one language |
+| `home_assistant_notes.remove_dictionary_word` | `lang` (required), `word` (required) | Nothing |
+| `home_assistant_notes.add_ignored_word` | `word` (required) | Nothing. Adds a word to the ignore list (all languages) |
+| `home_assistant_notes.remove_ignored_word` | `word` (required) | Nothing |
 
-Each action also fires an event you can use as an automation trigger: `home_assistant_notes_note_created`, `home_assistant_notes_note_updated` (the note is attached) and `home_assistant_notes_note_deleted` (carries `note_id`).
+Each action also fires an event you can use as an automation trigger: `home_assistant_notes_note_created`, `home_assistant_notes_note_updated` (the note is attached) and `home_assistant_notes_note_deleted` (carries `note_id`). Changes to the word lists fire `home_assistant_notes_words_changed`, and changing the spellcheck languages fires `home_assistant_notes_spellcheck_changed`.
 
 ```yaml
 action: home_assistant_notes.create_note
@@ -80,6 +84,49 @@ response_variable: result   # result.notes is a list of note objects
 | **🎨▾** | Note color                                             |
 | **📌**  | Pin / unpin                                            |
 | **🔗**  | Insert / remove link                                   |
+## Spellcheck
+
+The note body is spellchecked while you type. Misspelled words get a wavy underline in the error color of your theme.
+
+- **Languages per paragraph.** The language is detected for each paragraph or list item, so a note can mix two languages. Very short lines take the language of the line before them.
+- **Suggestions.** When the caret is in a misspelled word, a strip appears above the toolbar with suggestions, **Add to dictionary** and **Ignore**. Tap a suggestion to replace the word.
+- **Language chip.** The first item in the toolbar shows the language of the current paragraph. Use it to switch that paragraph between the two configured languages, or choose **Don't check** to turn spellchecking off for the whole note. A chip that says "Off" has a **Check spelling** entry to turn it back on.
+- **Title.** The title field is not checked by this feature. It keeps the browser's own spellcheck.
+
+### Choosing the two languages
+
+Go to **Settings → Devices & services → Home Assistant Notes → Configure** and pick two languages. By default these are the language of your Home Assistant plus English. A change applies right away; you don't need to reload anything.
+
+The dictionaries are downloaded once by Home Assistant itself from the jsdelivr npm CDN and then served from your own instance. No note text ever leaves your device. Only the dictionary files are downloaded.
+
+Your personal dictionary (per language) and your ignore list are stored in Home Assistant, so they are shared across all your devices.
+
+Supported languages (17): English, Nederlands, Türkçe, Français, Deutsch, Español, Português, Italiano, Ελληνικά, Svenska, Norsk bokmål, Magyar, Română, Русский, Polski, עברית, 한국어.
+
+### Dictionary licenses
+
+The dictionaries are the npm `dictionary-<code>` packages (Hunspell dictionaries). They are downloaded at runtime from the CDN. This integration does not bundle or redistribute them. Each one has its own license:
+
+| Language | Package | License | Unpacked size |
+|---|---|---|---|
+| English | `dictionary-en@4.0.0` | MIT AND BSD | 0.6 MB |
+| Nederlands | `dictionary-nl@2.0.0` | BSD-3-Clause OR CC-BY-3.0 | 2.6 MB |
+| Türkçe | `dictionary-tr@2.0.0` | MIT | 9.4 MB |
+| Français | `dictionary-fr@3.0.0` | MPL-2.0 | 1.4 MB |
+| Deutsch | `dictionary-de@3.0.0` | GPL-2.0 OR GPL-3.0 | 1.1 MB |
+| Español | `dictionary-es@4.0.0` | GPL-3.0 OR LGPL-3.0 OR MPL-1.1 | 0.9 MB |
+| Português | `dictionary-pt@4.0.0` | LGPL-3.0 OR MPL-2.0 | 5.5 MB |
+| Italiano | `dictionary-it@2.0.0` | GPL-3.0 | 1.4 MB |
+| Ελληνικά | `dictionary-el@4.0.0` | GPL-2.0 OR LGPL-2.1 OR MPL-1.1 | 19.4 MB |
+| Svenska | `dictionary-sv@4.0.0` | LGPL-3.0 | 2.4 MB |
+| Norsk bokmål | `dictionary-nb@3.0.0` | GPL-2.0 | 5.4 MB |
+| Magyar | `dictionary-hu@3.0.0` | GPL-2.0 OR LGPL-2.1 OR MPL-1.1 | 3.9 MB |
+| Română | `dictionary-ro@3.0.0` | GPL-2.0 OR LGPL-2.1 OR MPL-1.1 | 2.3 MB |
+| Русский | `dictionary-ru@3.0.0` | BSD-3-Clause | 3.6 MB |
+| Polski | `dictionary-pl@2.0.0` | GPL-3.0 OR LGPL-3.0 OR MPL-2.0 | 5.0 MB |
+| עברית | `dictionary-he@2.0.0` | AGPL-3.0 | 5.8 MB |
+| 한국어 | `dictionary-ko@2.0.0` | GPL-2.0 OR LGPL-2.1 OR MPL-1.1 | 14.0 MB |
+
 ## Use cases
 
 - **Shared shopping list**: a checklist note on the kitchen tablet dashboard that everyone can tick off.

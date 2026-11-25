@@ -94,6 +94,14 @@ export class HomeAssistantNotesTiptapEditor extends LitElement {
       margin-inline: 0;
       padding-inline: 1em;
     }
+    /* Misspelled words, marked by the spellcheck decoration plugin. */
+    .ProseMirror .spell-error {
+      text-decoration: underline wavy;
+      text-decoration-color: var(--error-color);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 2px;
+      text-decoration-skip-ink: none;
+    }
   `;
 
   @property({ attribute: false }) content = '';
