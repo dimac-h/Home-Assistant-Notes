@@ -18,7 +18,14 @@ from .languages import SUPPORTED_LANGUAGES, dictionary_url
 
 _LOGGER = logging.getLogger(__name__)
 
+# Seconds to wait before each retry of failed downloads (HA often boots before the network).
+RETRY_DELAYS = (30, 120, 600)
+
 type Status = Literal["missing", "downloading", "ready", "failed"]
+
+
+async def _sleep(delay: float) -> None:
+    await asyncio.sleep(delay)
 
 
 class DictionaryError(Exception):
@@ -132,9 +139,27 @@ class DictionaryManager:
             except (DictionaryError, aiohttp.ClientError, TimeoutError, OSError) as err:
                 _LOGGER.warning("Could not download the %s dictionary: %s", code, err)
                 self._set_status(code, "failed")
+            except Exception:  # noqa: BLE001 - one language must never abort the others
+                _LOGGER.exception("Unexpected error downloading the %s dictionary", code)
+                self._set_status(code, "failed")
             finally:
+                # Also covers cancellation: never leave "downloading" behind.
+                if self.status(code) == "downloading":
+                    self._set_status(code, "failed")
                 del self._in_flight[code]
                 future.set_result(None)
+
+    async def async_ensure_with_retry(
+        self, codes: list[str], delays: tuple[float, ...] = RETRY_DELAYS
+    ) -> None:
+        """Like async_ensure, but retry the failed languages after each delay."""
+        await self.async_ensure(codes)
+        for delay in delays:
+            failed = [code for code in codes if self.status(code) == "failed"]
+            if not failed:
+                return
+            await _sleep(delay)
+            await self.async_ensure(failed)
 
     async def _async_download(self, code: str) -> None:
         language = SUPPORTED_LANGUAGES[code]

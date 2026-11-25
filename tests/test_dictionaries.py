@@ -161,3 +161,99 @@ async def test_on_change_called_once_when_load_finds_files(hass: HomeAssistant, 
     calls = []
     await DictionaryManager(hass, on_change=lambda: calls.append(1)).async_load()
     assert calls == [1]
+
+
+async def test_unexpected_exception_fails_and_continues(hass: HomeAssistant, aioclient_mock) -> None:
+    from unittest.mock import patch
+
+    _mock(aioclient_mock, "tr")
+    statuses = []
+    manager = DictionaryManager(hass, on_change=lambda: statuses.append(manager.status("nl")))
+    await manager.async_load()
+    original = manager._async_download
+
+    async def flaky(code):
+        if code == "nl":
+            raise ValueError("boom")
+        await original(code)
+
+    with patch.object(manager, "_async_download", flaky):
+        await manager.async_ensure(["nl", "tr"])
+    assert manager.status("nl") == "failed"
+    assert manager.status("tr") == "ready"
+    assert statuses[:2] == ["downloading", "failed"]
+
+
+async def test_cancellation_does_not_leave_downloading(hass: HomeAssistant) -> None:
+    import asyncio
+    from unittest.mock import patch
+
+    manager = await _manager(hass)
+    started = asyncio.Event()
+
+    async def hang(code):
+        started.set()
+        await asyncio.sleep(3600)
+
+    with patch.object(manager, "_async_download", hang):
+        task = hass.async_create_task(manager.async_ensure(["nl"]))
+        waiter = hass.async_create_task(manager.async_ensure(["nl"]))
+        await started.wait()
+        await asyncio.sleep(0)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        await asyncio.wait_for(waiter, 1)  # waiter woken, no deadlock
+    assert manager.status("nl") == "failed"
+    assert not manager._in_flight
+
+
+async def test_retry_succeeds_after_first_failure(hass: HomeAssistant, aioclient_mock) -> None:
+    from unittest.mock import patch
+
+    _mock(aioclient_mock, "nl", status=500)
+    manager = await _manager(hass)
+    sleeps = []
+
+    async def fake_sleep(delay):
+        sleeps.append(delay)
+        aioclient_mock.clear_requests()
+        _mock(aioclient_mock, "nl")
+
+    with patch("custom_components.home_assistant_notes.dictionaries._sleep", fake_sleep):
+        await manager.async_ensure_with_retry(["nl"], delays=(1, 2, 3))
+    assert manager.status("nl") == "ready"
+    assert sleeps == [1]
+
+
+async def test_retry_stops_after_all_delays(hass: HomeAssistant, aioclient_mock) -> None:
+    from unittest.mock import patch
+
+    _mock(aioclient_mock, "nl", status=500)
+    manager = await _manager(hass)
+    sleeps = []
+
+    async def fake_sleep(delay):
+        sleeps.append(delay)
+
+    with patch("custom_components.home_assistant_notes.dictionaries._sleep", fake_sleep):
+        await manager.async_ensure_with_retry(["nl"], delays=(1, 2, 3))
+    assert manager.status("nl") == "failed"
+    assert sleeps == [1, 2, 3]
+    assert aioclient_mock.call_count == 4  # 1 request per attempt (first file 500s)
+
+
+async def test_retry_only_failed_languages(hass: HomeAssistant, aioclient_mock) -> None:
+    from unittest.mock import patch
+
+    _mock(aioclient_mock, "nl", status=500)
+    _mock(aioclient_mock, "tr")
+    manager = await _manager(hass)
+
+    async def fake_sleep(delay):
+        pass
+
+    with patch("custom_components.home_assistant_notes.dictionaries._sleep", fake_sleep):
+        await manager.async_ensure_with_retry(["nl", "tr"], delays=(1,))
+    tr_url = dictionary_url(SUPPORTED_LANGUAGES["tr"], "index.aff")
+    assert sum(1 for call in aioclient_mock.mock_calls if str(call[1]) == tr_url) == 1

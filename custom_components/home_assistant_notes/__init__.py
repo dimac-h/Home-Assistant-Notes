@@ -254,7 +254,7 @@ def _start_dictionary_download(hass: HomeAssistant, entry: NotesConfigEntry) -> 
     """Download the dictionaries of the current pair in the background."""
     pair = get_language_pair(hass.config.language, entry.options)
     entry.async_create_background_task(
-        hass, entry.runtime_data.dictionaries.async_ensure(pair), "home_assistant_notes_dictionaries"
+        hass, entry.runtime_data.dictionaries.async_ensure_with_retry(pair), "home_assistant_notes_dictionaries"
     )
 
 
