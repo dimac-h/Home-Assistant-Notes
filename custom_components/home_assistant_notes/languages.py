@@ -22,6 +22,20 @@ SUPPORTED_LANGUAGES: dict[str, Language] = {
     "en": Language("en", "English", "dictionary-en", "4.0.0", "en"),
     "nl": Language("nl", "Nederlands", "dictionary-nl", "2.0.0", "nl"),
     "tr": Language("tr", "Türkçe", "dictionary-tr", "2.0.0", "tr"),
+    "fr": Language("fr", "Français", "dictionary-fr", "3.0.0", "fr"),
+    "de": Language("de", "Deutsch", "dictionary-de", "3.0.0", "de"),
+    "es": Language("es", "Español", "dictionary-es", "4.0.0", "es"),
+    "pt": Language("pt", "Português", "dictionary-pt", "4.0.0", "pt"),
+    "it": Language("it", "Italiano", "dictionary-it", "2.0.0", "it"),
+    "el": Language("el", "Ελληνικά", "dictionary-el", "4.0.0", "el"),
+    "sv": Language("sv", "Svenska", "dictionary-sv", "4.0.0", "sv"),
+    "nb": Language("nb", "Norsk bokmål", "dictionary-nb", "3.0.0", "no"),
+    "hu": Language("hu", "Magyar", "dictionary-hu", "3.0.0", "hu"),
+    "ro": Language("ro", "Română", "dictionary-ro", "3.0.0", "ro"),
+    "ru": Language("ru", "Русский", "dictionary-ru", "3.0.0", "ru"),
+    "pl": Language("pl", "Polski", "dictionary-pl", "2.0.0", "pl"),
+    "he": Language("he", "עברית", "dictionary-he", "2.0.0", "he"),
+    "ko": Language("ko", "한국어", "dictionary-ko", "2.0.0", "ko"),
 }
 
 
