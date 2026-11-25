@@ -80,7 +80,7 @@ export class SpellChecker {
     if (detected.confident) return detected.lang;
     // Prefer languages that actually have a dictionary; fall back to any
     // pair language only when nothing else is available.
-    const candidates = [previous, block.inheritLang, this.fallback, ...this.dictionaries.keys()];
+    const candidates = [block.inheritLang, previous, this.fallback, ...this.dictionaries.keys()];
     return (
       candidates.find((c) => this.inPair(c) && this.dictionaries.has(c)) ??
       candidates.find((c) => this.inPair(c)) ??

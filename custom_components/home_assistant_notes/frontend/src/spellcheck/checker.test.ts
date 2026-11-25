@@ -114,6 +114,14 @@ describe('SpellChecker', () => {
     expect(results[1].misspelled.length).toBe(1);
   });
 
+  it('prefers inheritLang over the previous block in the same batch', () => {
+    const results = make().checkBlocks([
+      { key: 'a', text: 'Ik heb een meeting vandaag' },
+      { key: 'b', text: 'hi', inheritLang: 'en' },
+    ]);
+    expect(results.map((r) => r.lang)).toEqual(['nl', 'en']);
+  });
+
   it('lists loaded languages', () => {
     expect(make().languages()).toEqual(['en', 'nl']);
   });
