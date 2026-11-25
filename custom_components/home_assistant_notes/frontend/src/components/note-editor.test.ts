@@ -233,4 +233,57 @@ describe('note editor language chip', () => {
     t.toolbar().dispatchEvent(new CustomEvent('pin-toggle', { bubbles: true, composed: true }));
     expect(t.saves.at(-1)).toMatchObject({ pinned: true, spellcheck: true });
   });
+
+  it('sends the toggled value from every save path before the note echoes back', async () => {
+    const t = await mountChip();
+    await t.fire();
+    const fire = (name: string, detail?: unknown) => t.toolbar().dispatchEvent(new CustomEvent(name, { detail, bubbles: true, composed: true }));
+    fire('spellcheck-toggle');
+    await t.el.updateComplete;
+    fire('pin-toggle');
+    fire('color-select', { color: '#000000' });
+    (t.el as any)._tiptap.getHTML = () => '<p>typed</p>';
+    t.el.shadowRoot!.querySelector('home-assistant-notes-tiptap-editor')!.dispatchEvent(new CustomEvent('content-changed'));
+    await new Promise((r) => setTimeout(r, 1100));
+    (t.el as any)._flushSorted(NOTE);
+    expect(t.saves.length).toBeGreaterThanOrEqual(4);
+    expect(t.saves.map((s) => s.spellcheck)).toEqual(t.saves.map(() => false));
+  });
+
+  it('flushes the departing note with the toggled value when another note opens', async () => {
+    const t = await mountChip();
+    await t.fire();
+    t.toolbar().dispatchEvent(new CustomEvent('spellcheck-toggle', { bubbles: true, composed: true }));
+    await t.el.updateComplete;
+    t.tiptap.getHTML = () => '<p>changed</p>';
+    t.saves.length = 0;
+    t.el.note = { ...NOTE, note_id: 'n2' };
+    await t.el.updateComplete;
+    expect(t.saves).toHaveLength(1);
+    expect(t.saves[0]).toMatchObject({ note_id: 'n1', spellcheck: false });
+  });
+
+  it('keeps the toggle when an older echo of the note arrives', async () => {
+    const t = await mountChip();
+    await t.fire();
+    t.toolbar().dispatchEvent(new CustomEvent('spellcheck-toggle', { bubbles: true, composed: true }));
+    await t.el.updateComplete;
+    t.el.note = { ...NOTE, title: 'older', spellcheck: true };
+    await t.el.updateComplete;
+    expect(t.toolbar().spellcheckOn).toBe(false);
+    expect(t.toolbar().languageName).toBe('Off');
+  });
+
+  it('renders the Off chip on the very first render without any event', async () => {
+    const el = document.createElement('home-assistant-notes-editor') as HomeAssistantNotesEditor;
+    el.note = { ...NOTE, spellcheck: false };
+    el.spellcheckConfig = { languages: [{ code: 'en', name: 'English', status: 'ready' }], dictionary: {}, ignored: [] } as any;
+    document.body.appendChild(el);
+    await el.updateComplete;
+    const toolbar = el.shadowRoot!.querySelector('home-assistant-notes-toolbar') as any;
+    await toolbar.updateComplete;
+    expect(toolbar.languageName).toBe('Off');
+    const items = Array.from(toolbar.shadowRoot.querySelectorAll('.group.language .item')).map((b: any) => b.textContent.trim());
+    expect(items).toEqual(['Check spelling']);
+  });
 });

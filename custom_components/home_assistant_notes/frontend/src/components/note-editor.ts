@@ -125,6 +125,8 @@ export class HomeAssistantNotesEditor extends LitElement {
   willUpdate(changed: Map<string, unknown>): void {
     if (!changed.has('note')) return;
     const previous = changed.get('note') as Note | null | undefined;
+    // The departing note's effective switch, read before the override is dropped.
+    const previousSpellcheck = this._spellcheckOn;
     if (previous?.note_id !== this.note?.note_id || this.note?.spellcheck === this._spellcheckOverride) {
       this._spellcheckOverride = null;
     }
@@ -133,7 +135,7 @@ export class HomeAssistantNotesEditor extends LitElement {
     this._spellWord = null;
     this._spellSuggestions = [];
     this._blockLang = null;
-    if (previous) this._flushSorted(previous);
+    if (previous) this._flushSorted(previous, previous.note_id === this.note?.note_id ? this._spellcheckOn : previousSpellcheck);
     this._displayContent = this.note ? sortTaskListsHtml(this.note.content || '') : '';
   }
 
@@ -206,7 +208,7 @@ export class HomeAssistantNotesEditor extends LitElement {
       content: overrides.content ?? this._tiptap?.getHTML() ?? this.note.content,
       color: overrides.color ?? this.note.color,
       pinned: overrides.pinned ?? this.note.pinned,
-      spellcheck: overrides.spellcheck ?? this.note.spellcheck,
+      spellcheck: overrides.spellcheck ?? this._spellcheckOn,
     };
     this.dispatchEvent(new CustomEvent('note-save', { detail, bubbles: true, composed: true }));
     this._justSaved = true;
@@ -227,14 +229,14 @@ export class HomeAssistantNotesEditor extends LitElement {
   // only toggles which pane is visible — willUpdate's same-note guard would
   // otherwise skip refreshing the display, leaving the live editor showing
   // the pre-sort order even though the sorted version was already saved.
-  private _flushSorted(note: Note): void {
+  private _flushSorted(note: Note, spellcheck: boolean = this._spellcheckOn): void {
     clearTimeout(this._saveTimeout);
     const content = sortTaskListsHtml(this._tiptap?.getHTML() ?? note.content);
     const title = this._titleInput?.value ?? note.title;
     this._displayContent = content;
     if (content === note.content && title === note.title) return;
     this.dispatchEvent(new CustomEvent('note-save', {
-      detail: { note_id: note.note_id, title, content, color: note.color, pinned: note.pinned, spellcheck: note.spellcheck },
+      detail: { note_id: note.note_id, title, content, color: note.color, pinned: note.pinned, spellcheck },
       bubbles: true,
       composed: true,
     }));
@@ -318,9 +320,17 @@ export class HomeAssistantNotesEditor extends LitElement {
     if (other) this._tiptap?.setBlockLanguage(other.code);
   }
 
+  // Languages the chip can name: the editor's loaded pair once it has one, otherwise the
+  // ready languages of the config (so the chip renders before the editor reports anything).
+  private _chipLanguages(): Array<{ code: string; name: string }> {
+    const pair = this._tiptap?.spellcheckLanguages ?? [];
+    if (pair.length) return pair;
+    return (this.spellcheckConfig?.languages ?? []).filter((l) => l.status === 'ready').map((l) => ({ code: l.code, name: l.name }));
+  }
+
   private _otherLanguage(): { code: string; name: string } | undefined {
     const current = this._blockLang?.code;
-    return (this._tiptap?.spellcheckLanguages ?? []).find((l) => l.code !== current);
+    return this._chipLanguages().find((l) => l.code !== current);
   }
 
   private _onSpellcheckToggle(): void {
@@ -334,14 +344,15 @@ export class HomeAssistantNotesEditor extends LitElement {
   // Chip props for the toolbar. Without a spellcheck config (or when spellcheck is on but
   // the block's language isn't known yet) the name stays empty and the chip hidden.
   private _chipProps(): { languageName: string; otherLanguageName: string; languageManual: boolean } {
-    const languages = this._tiptap?.spellcheckLanguages ?? [];
-    if (!this.spellcheckConfig?.languages.length || !languages.length) {
-      return { languageName: '', otherLanguageName: '', languageManual: false };
-    }
+    const none = { languageName: '', otherLanguageName: '', languageManual: false };
+    if (!this.spellcheckConfig?.languages.length) return none;
+    if (!this._spellcheckOn) return { ...none, languageName: 'Off' };
+    const languages = this._chipLanguages();
     const current = languages.find((l) => l.code === this._blockLang?.code);
+    if (!current) return none;
     return {
-      languageName: this._spellcheckOn ? (current?.name ?? '') : 'Off',
-      otherLanguageName: current ? (languages.find((l) => l.code !== current.code)?.name ?? '') : '',
+      languageName: current.name,
+      otherLanguageName: languages.find((l) => l.code !== current.code)?.name ?? '',
       languageManual: this._blockLang?.manual ?? false,
     };
   }
