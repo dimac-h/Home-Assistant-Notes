@@ -55,6 +55,7 @@ SERVICE_REMOVE_IGNORED_WORD = "remove_ignored_word"
 ATTR_LANG = "lang"
 ATTR_WORD = "word"
 EVENT_WORDS_CHANGED = f"{DOMAIN}_words_changed"
+EVENT_SPELLCHECK_CHANGED = f"{DOMAIN}_spellcheck_changed"
 
 # Downloaded Hunspell dictionaries, served as static files
 DICTIONARIES_URL_PATH = "/home_assistant_notes_dictionaries"

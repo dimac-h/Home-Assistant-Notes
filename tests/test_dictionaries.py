@@ -124,3 +124,40 @@ async def test_unknown_language_is_ignored(hass: HomeAssistant, aioclient_mock, 
     assert manager.status("xx") == "missing"
     assert aioclient_mock.call_count == 0
     assert "xx" in caplog.text
+
+
+async def test_on_change_called_per_transition(hass: HomeAssistant, aioclient_mock) -> None:
+    _mock(aioclient_mock, "nl")
+    statuses = []
+    manager = DictionaryManager(hass, on_change=lambda: statuses.append(manager.status("nl")))
+    await manager.async_load()
+    await manager.async_ensure(["nl"])
+    assert statuses == ["downloading", "ready"]
+
+
+async def test_on_change_called_on_failure(hass: HomeAssistant, aioclient_mock) -> None:
+    _mock(aioclient_mock, "nl", status=404)
+    statuses = []
+    manager = DictionaryManager(hass, on_change=lambda: statuses.append(manager.status("nl")))
+    await manager.async_load()
+    await manager.async_ensure(["nl"])
+    assert statuses == ["downloading", "failed"]
+
+
+async def test_on_change_not_called_when_already_ready(hass: HomeAssistant, aioclient_mock) -> None:
+    _mock(aioclient_mock, "nl")
+    await (await _manager(hass)).async_ensure(["nl"])
+    calls = []
+    manager = DictionaryManager(hass, on_change=lambda: calls.append(1))
+    await manager.async_load()
+    calls.clear()
+    await manager.async_ensure(["nl"])
+    assert calls == []
+
+
+async def test_on_change_called_once_when_load_finds_files(hass: HomeAssistant, aioclient_mock) -> None:
+    _mock(aioclient_mock, "nl")
+    await (await _manager(hass)).async_ensure(["nl"])
+    calls = []
+    await DictionaryManager(hass, on_change=lambda: calls.append(1)).async_load()
+    assert calls == [1]

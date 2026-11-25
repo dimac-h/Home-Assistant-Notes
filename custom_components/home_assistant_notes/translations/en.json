@@ -148,7 +148,7 @@
     "step": {
       "init": {
         "title": "Spelling languages",
-        "description": "Choose the two languages your notes are checked in. Dictionaries are downloaded once, in the background. After changing them, reload the Notes panel.",
+        "description": "Choose the two languages for your notes. The language dictionaries are downloaded once in the background and then served from HA.",
         "data": {
           "language_1": "First language",
           "language_2": "Second language"

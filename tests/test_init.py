@@ -1,11 +1,14 @@
 """Tests for Home Assistant Notes setup, services, and events."""
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 import voluptuous as vol
 from homeassistant.setup import async_setup_component
+from pytest_homeassistant.common import async_capture_events
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
 from custom_components.home_assistant_notes.__init__ import (
@@ -14,7 +17,7 @@ from custom_components.home_assistant_notes.__init__ import (
     ADD_REMOVE_DICTIONARY_WORD_SCHEMA,
     UPDATE_NOTE_SCHEMA,
 )
-from custom_components.home_assistant_notes.const import CARD_MODULE_URL, DOMAIN
+from custom_components.home_assistant_notes.const import CARD_MODULE_URL, DOMAIN, EVENT_SPELLCHECK_CHANGED
 from custom_components.home_assistant_notes.storage import NotesStorage
 from custom_components.home_assistant_notes.words import WordsStorage
 
@@ -352,3 +355,35 @@ async def test_spellcheck_config_errors_when_not_loaded(
 
     assert not response["success"]
     assert response["error"]["code"] == "not_loaded"
+
+
+async def test_options_update_fires_spellcheck_changed(
+    hass: HomeAssistant, setup_integration: MockConfigEntry
+) -> None:
+    events = async_capture_events(hass, EVENT_SPELLCHECK_CHANGED)
+    hass.config_entries.async_update_entry(setup_integration, options={"languages": ["tr", "en"]})
+    await hass.async_block_till_done()
+
+    assert len(events) == 1
+    assert events[0].data == {}
+
+
+async def test_dictionary_status_change_fires_spellcheck_changed(
+    hass: HomeAssistant, setup_integration: MockConfigEntry
+) -> None:
+    events = async_capture_events(hass, EVENT_SPELLCHECK_CHANGED)
+    setup_integration.runtime_data.dictionaries._notify()
+    await hass.async_block_till_done()
+
+    assert len(events) == 1
+
+
+def test_options_description_has_no_reload_sentence() -> None:
+    expected = (
+        "Choose the two languages for your notes. The language dictionaries are "
+        "downloaded once in the background and then served from HA."
+    )
+    base = Path(__file__).parent.parent / "custom_components" / "home_assistant_notes"
+    for name in ("strings.json", "translations/en.json"):
+        data = json.loads((base / name).read_text(encoding="utf-8"))
+        assert data["options"]["step"]["init"]["description"] == expected

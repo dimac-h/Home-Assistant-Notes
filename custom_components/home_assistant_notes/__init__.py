@@ -36,6 +36,7 @@ from .const import (
     ATTR_TAGS,
     ATTR_LANG,
     ATTR_WORD,
+    EVENT_SPELLCHECK_CHANGED,
     EVENT_WORDS_CHANGED,
     SERVICE_ADD_DICTIONARY_WORD,
     SERVICE_REMOVE_DICTIONARY_WORD,
@@ -258,7 +259,8 @@ def _start_dictionary_download(hass: HomeAssistant, entry: NotesConfigEntry) -> 
 
 
 async def _async_options_updated(hass: HomeAssistant, entry: NotesConfigEntry) -> None:
-    """Fetch dictionaries for a newly chosen pair; the panel picks it up on its next load."""
+    """Tell the panel the pair changed, then fetch the dictionaries it needs."""
+    hass.bus.async_fire(EVENT_SPELLCHECK_CHANGED)
     _start_dictionary_download(hass, entry)
 
 
@@ -268,7 +270,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: NotesConfigEntry) -> boo
     await notes_storage.async_load()
     words_storage = WordsStorage(hass)
     await words_storage.async_load()
-    dictionaries = DictionaryManager(hass)
+    dictionaries = DictionaryManager(
+        hass, on_change=lambda: hass.bus.async_fire(EVENT_SPELLCHECK_CHANGED)
+    )
     await dictionaries.async_load()
     entry.runtime_data = RuntimeData(
         notes=notes_storage, words=words_storage, dictionaries=dictionaries

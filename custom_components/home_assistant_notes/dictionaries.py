@@ -5,6 +5,7 @@ import asyncio
 import logging
 import os
 import shutil
+from collections.abc import Callable
 from typing import Literal
 
 import aiohttp
@@ -74,8 +75,9 @@ def _scan(base: str) -> set[str]:
 class DictionaryManager:
     """Downloads and tracks the dictionary files of the supported languages."""
 
-    def __init__(self, hass: HomeAssistant) -> None:
+    def __init__(self, hass: HomeAssistant, on_change: Callable[[], None] | None = None) -> None:
         self._hass = hass
+        self._on_change = on_change
         self.base_path = hass.config.path("home_assistant_notes", "dictionaries")
         self._status: dict[str, Status] = {}
         self._in_flight: dict[str, asyncio.Future[None]] = {}
@@ -87,8 +89,22 @@ class DictionaryManager:
             os.makedirs(self.base_path, exist_ok=True)
             return _scan(self.base_path)
 
+        changed = False
         for code in await self._hass.async_add_executor_job(_prepare):
-            self._status[code] = "ready"
+            if self._status.get(code) != "ready":
+                self._status[code] = "ready"
+                changed = True
+        if changed:
+            self._notify()
+
+    def _notify(self) -> None:
+        if self._on_change is not None:
+            self._on_change()
+
+    def _set_status(self, code: str, status: Status) -> None:
+        if self.status(code) != status:
+            self._status[code] = status
+            self._notify()
 
     def status(self, code: str) -> Status:
         return self._status.get(code, "missing")
@@ -109,13 +125,13 @@ class DictionaryManager:
                 continue
             future = self._hass.loop.create_future()
             self._in_flight[code] = future
-            self._status[code] = "downloading"
+            self._set_status(code, "downloading")
             try:
                 await self._async_download(code)
-                self._status[code] = "ready"
+                self._set_status(code, "ready")
             except (DictionaryError, aiohttp.ClientError, TimeoutError, OSError) as err:
                 _LOGGER.warning("Could not download the %s dictionary: %s", code, err)
-                self._status[code] = "failed"
+                self._set_status(code, "failed")
             finally:
                 del self._in_flight[code]
                 future.set_result(None)
