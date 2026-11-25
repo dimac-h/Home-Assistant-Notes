@@ -286,4 +286,13 @@ describe('note editor language chip', () => {
     const items = Array.from(toolbar.shadowRoot.querySelectorAll('.group.language .item')).map((b: any) => b.textContent.trim());
     expect(items).toEqual(['Check spelling']);
   });
+
+  it.each([[false, true], [true, false]])('flushes a departing spellcheck:%s note with its own value when %s note opens', async (a, b) => {
+    const t = await mountChip({ ...NOTE, spellcheck: a });
+    t.tiptap.getHTML = () => '<p>changed</p>';
+    t.el.note = { ...NOTE, note_id: 'n2', spellcheck: b };
+    await t.el.updateComplete;
+    expect(t.saves).toHaveLength(1);
+    expect(t.saves[0]).toMatchObject({ note_id: 'n1', spellcheck: a });
+  });
 });

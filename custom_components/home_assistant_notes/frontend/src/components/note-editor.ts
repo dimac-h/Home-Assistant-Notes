@@ -126,7 +126,7 @@ export class HomeAssistantNotesEditor extends LitElement {
     if (!changed.has('note')) return;
     const previous = changed.get('note') as Note | null | undefined;
     // The departing note's effective switch, read before the override is dropped.
-    const previousSpellcheck = this._spellcheckOn;
+    const previousSpellcheck = this._spellcheckOverride ?? previous?.spellcheck !== false;
     if (previous?.note_id !== this.note?.note_id || this.note?.spellcheck === this._spellcheckOverride) {
       this._spellcheckOverride = null;
     }
@@ -135,7 +135,7 @@ export class HomeAssistantNotesEditor extends LitElement {
     this._spellWord = null;
     this._spellSuggestions = [];
     this._blockLang = null;
-    if (previous) this._flushSorted(previous, previous.note_id === this.note?.note_id ? this._spellcheckOn : previousSpellcheck);
+    if (previous) this._flushSorted(previous, previousSpellcheck);
     this._displayContent = this.note ? sortTaskListsHtml(this.note.content || '') : '';
   }
 
