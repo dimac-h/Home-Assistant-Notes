@@ -36,3 +36,24 @@ export interface Token {
   length: number;
   word: string;
 }
+
+export type WorkerRequest =
+  | { id: number; type: 'init'; languages: LanguageConfig[]; fallback: string }
+  | { id: number; type: 'check'; blocks: BlockRequest[] }
+  | { id: number; type: 'suggest'; word: string; lang: string }
+  | { id: number; type: 'addDictionaryWord'; lang: string; word: string }
+  | { id: number; type: 'removeDictionaryWord'; lang: string; word: string }
+  | { id: number; type: 'setIgnored'; words: string[] };
+
+export type WorkerResponse =
+  | { id: number; type: WorkerRequest['type']; result: unknown }
+  | { id: number; error: string };
+
+/** A language entry as returned by the `spellcheck_config` websocket command. */
+export interface ConfigLanguage {
+  code: string;
+  tinyld: string;
+  status: string;
+  aff_url: string;
+  dic_url: string;
+}

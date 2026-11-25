@@ -31,6 +31,12 @@ export class SpellChecker {
     for (const word of words) dict.add(word);
   }
 
+  removeDictionaryWords(lang: string, words: string[]): void {
+    const dict = this.dictionaries.get(lang);
+    if (!dict) return;
+    for (const word of words) dict.remove(word);
+  }
+
   setIgnored(words: string[]): void {
     this.ignored = new Set(words.map((w) => w.toLowerCase()));
   }

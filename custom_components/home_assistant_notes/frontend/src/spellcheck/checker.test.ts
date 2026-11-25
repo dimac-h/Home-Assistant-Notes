@@ -118,3 +118,13 @@ describe('SpellChecker', () => {
     expect(make().languages()).toEqual(['en', 'nl']);
   });
 });
+
+describe('SpellChecker.removeDictionaryWords', () => {
+  it('removes a previously added word again', () => {
+    const checker = make([en]);
+    checker.addDictionaryWords('en', ['wrold']);
+    expect(checker.checkBlocks([{ key: 'a', text: 'hello wrold' }])[0].misspelled).toEqual([]);
+    checker.removeDictionaryWords('en', ['wrold']);
+    expect(checker.checkBlocks([{ key: 'a', text: 'hello wrold' }])[0].misspelled).toHaveLength(1);
+  });
+});
