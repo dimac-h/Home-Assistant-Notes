@@ -10,6 +10,7 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from custom_components.home_assistant_notes.__init__ import (
     CREATE_NOTE_SCHEMA,
     DELETE_NOTE_SCHEMA,
+    ADD_REMOVE_DICTIONARY_WORD_SCHEMA,
     UPDATE_NOTE_SCHEMA,
 )
 from custom_components.home_assistant_notes.const import CARD_MODULE_URL, DOMAIN
@@ -284,3 +285,9 @@ async def test_word_service_rejects_empty_word(
 ) -> None:
     with pytest.raises(ServiceValidationError):
         await hass.services.async_call(DOMAIN, "add_ignored_word", {"word": "  "}, blocking=True)
+
+
+def test_word_schema_validates_language() -> None:
+    assert ADD_REMOVE_DICTIONARY_WORD_SCHEMA({"lang": "nl", "word": "x"})["lang"] == "nl"
+    with pytest.raises(vol.Invalid):
+        ADD_REMOVE_DICTIONARY_WORD_SCHEMA({"lang": "xx", "word": "x"})

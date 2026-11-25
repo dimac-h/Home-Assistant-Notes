@@ -46,6 +46,7 @@ from .const import (
     PANEL_URL,
     PANEL_COMPONENT_NAME,
 )
+from .languages import SUPPORTED_LANGUAGES
 from .storage import NotesStorage
 from .words import WordsStorage
 
@@ -93,7 +94,7 @@ DELETE_NOTE_SCHEMA = vol.Schema({
 })
 
 ADD_REMOVE_DICTIONARY_WORD_SCHEMA = vol.Schema({
-    vol.Required(ATTR_LANG): cv.string,
+    vol.Required(ATTR_LANG): vol.In(list(SUPPORTED_LANGUAGES)),
     vol.Required(ATTR_WORD): cv.string,
 })
 
