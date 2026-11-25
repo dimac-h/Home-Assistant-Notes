@@ -84,20 +84,21 @@ response_variable: result   # result.notes is a list of note objects
 | **🎨▾** | Note color                                             |
 | **📌**  | Pin / unpin                                            |
 | **🔗**  | Insert / remove link                                   |
+
 ## Spellcheck
 
 The note body is spellchecked while you type. Misspelled words get a wavy underline in the error color of your theme.
 
-- **Languages per paragraph.** The language is detected for each paragraph or list item, so a note can mix two languages. Very short lines take the language of the line before them.
+- **Languages per paragraph.** The language is detected for each paragraph or list item, so a note can mix two languages. Short or unclear lines take the language of the line before them.
 - **Suggestions.** When the caret is in a misspelled word, a strip appears above the toolbar with suggestions, **Add to dictionary** and **Ignore**. Tap a suggestion to replace the word.
 - **Language chip.** The first item in the toolbar shows the language of the current paragraph. Use it to switch that paragraph between the two configured languages, or choose **Don't check** to turn spellchecking off for the whole note. A chip that says "Off" has a **Check spelling** entry to turn it back on.
 - **Title.** The title field is not checked by this feature. It keeps the browser's own spellcheck.
 
 ### Choosing the two languages
 
-Go to **Settings → Devices & services → Home Assistant Notes → Configure** and pick two languages. By default these are the language of your Home Assistant plus English. A change applies right away; you don't need to reload anything.
+Go to **Settings → Devices & services → Home Assistant Notes → Configure** and pick two languages. By default these are the language of your Home Assistant plus English. If your Home Assistant language is English or has no dictionary, the default pair is English plus Nederlands. You don't need to reload anything: the panel updates on its own once the new dictionary has finished downloading.
 
-The dictionaries are downloaded once by Home Assistant itself from the jsdelivr npm CDN and then served from your own instance. No note text ever leaves your device. Only the dictionary files are downloaded.
+The dictionaries are downloaded once by Home Assistant itself from the jsdelivr npm CDN and then served from your own instance. Downloads run in the background and, if one fails (for example because the network is not up yet after a restart), it is retried automatically a few times. A dictionary is downloaded again when this integration updates to a newer dictionary version. No note text ever leaves your device. Only the dictionary files are downloaded.
 
 Your personal dictionary (per language) and your ignore list are stored in Home Assistant, so they are shared across all your devices.
 
