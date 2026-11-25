@@ -181,6 +181,7 @@ export class HomeAssistantNotesPanel extends LitElement {
         <div class="editor-pane">
           <home-assistant-notes-editor
             .note=${this._selectedNote}
+            .language=${this.hass?.language}
             @editor-back=${this._onEditorBack}
             @note-save=${this._onNoteSave}
             @note-delete=${this._onNoteDelete}

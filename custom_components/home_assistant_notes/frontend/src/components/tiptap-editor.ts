@@ -93,6 +93,10 @@ export class HomeAssistantNotesTiptapEditor extends LitElement {
   `;
 
   @property({ attribute: false }) content = '';
+  // Default language of the note body, used by the browser's native spellcheck.
+  // Without an explicit `lang` Firefox shows no squiggles at all until the user
+  // tags a selection with a language. Falls back to the page, then browser, language.
+  @property() lang = '';
 
   @query('#mount') private _mount?: HTMLDivElement;
 
@@ -114,7 +118,12 @@ export class HomeAssistantNotesTiptapEditor extends LitElement {
     this._editor = null;
   }
 
+  private _editorAttributes(): Record<string, string> {
+    return { spellcheck: 'true', lang: this.lang || document.documentElement.lang || navigator.language || 'en' };
+  }
+
   updated(changed: Map<string, unknown>): void {
+    if (changed.has('lang') && this._editor) this._editor.view.setProps({ attributes: this._editorAttributes() });
     if (changed.has('content') && this._editor && this.content !== this._lastEmitted) {
       this._lastEmitted = this.content;
       this._editor.commands.setContent(this.content, { emitUpdate: false });
@@ -149,6 +158,7 @@ export class HomeAssistantNotesTiptapEditor extends LitElement {
       content: this.content,
       autofocus: 'end',
       editorProps: {
+        attributes: this._editorAttributes(),
         handleDOMEvents: {
           // Firefox for Android workaround. Its soft-keyboard Backspace in an empty
           // top-level paragraph after a list is applied by the browser itself (a

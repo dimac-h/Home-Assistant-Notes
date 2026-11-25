@@ -33,6 +33,32 @@ const itemTexts = (el: HomeAssistantNotesTiptapEditor) =>
 beforeEach(() => localStorage.removeItem(FLAG));
 afterEach(() => { document.body.innerHTML = ''; localStorage.removeItem(FLAG); vi.useRealTimers(); });
 
+describe('spellcheck', () => {
+  it('enables native spellcheck with a language on the editable root', async () => {
+    const el = await mount('<p>hallo</p>');
+    const root = el.shadowRoot!.querySelector('.ProseMirror')!;
+    expect(root.getAttribute('spellcheck')).toBe('true');
+    expect(root.getAttribute('lang')).toBeTruthy();
+  });
+
+  it('uses the lang property when set', async () => {
+    const el = document.createElement('home-assistant-notes-tiptap-editor');
+    el.lang = 'nl';
+    document.body.appendChild(el);
+    await vi.waitFor(() => expect((el as any)._editor).toBeTruthy());
+    expect(el.shadowRoot!.querySelector('.ProseMirror')!.getAttribute('lang')).toBe('nl');
+  });
+});
+
+describe('spellcheck language updates', () => {
+  it('follows later changes of the lang property', async () => {
+    const el = await mount('<p>hallo</p>');
+    el.lang = 'nl';
+    await el.updateComplete;
+    expect(el.shadowRoot!.querySelector('.ProseMirror')!.getAttribute('lang')).toBe('nl');
+  });
+});
+
 describe('checklist toggle', () => {
   it('moves checked items below unchecked ones, each group sorted alphabetically', async () => {
     const el = await mount(taskList([['banana', false], ['apple', false], ['cherry', true]]));

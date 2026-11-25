@@ -75,6 +75,8 @@ export class HomeAssistantNotesEditor extends LitElement {
   `;
 
   @property({ attribute: false }) note: Note | null = null;
+  // HA's UI language; becomes the editor's default spellcheck language.
+  @property({ attribute: false }) language?: string;
 
   @state() private _pendingDelete = false;
   @state() private _justSaved = false;
@@ -277,6 +279,7 @@ export class HomeAssistantNotesEditor extends LitElement {
         ></textarea>
         <home-assistant-notes-tiptap-editor
           .content=${this._displayContent}
+          .lang=${this.language ?? ''}
           @content-changed=${() => this._scheduleSave()}
         ></home-assistant-notes-tiptap-editor>
       </div>
