@@ -31,6 +31,7 @@ interface Opts {
   client?: SpellcheckClientLike;
   enabled?: () => boolean;
   pair?: string[];
+  cacheLimit?: number;
 }
 
 const editors: Editor[] = [];
@@ -49,6 +50,7 @@ function make(content: string, opts: Opts = {}) {
         pair: opts.pair ?? ['en', 'nl'],
         fallback: 'en',
         enabled: opts.enabled ?? (() => true),
+        cacheLimit: opts.cacheLimit,
       }),
     ],
   });
@@ -317,5 +319,21 @@ describe('spellcheck extension', () => {
       await vi.advanceTimersByTimeAsync(5_000);
       expect(client.check).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('trims the cache to the current document past the limit and keeps decorations correct', async () => {
+    const old = '<p>aaa wrold</p><p>bbb</p><p>ccc</p><p>ddd</p>';
+    const next = '<p>eee</p><p>fff</p><p>ggg</p><p>hhh helo</p>';
+    const { editor, client } = make(old, { cacheLimit: 4 });
+    await flush();
+    expect(squiggles(editor)).toEqual(['wrold']);
+    editor.commands.setContent(next);
+    await flush();
+    expect(squiggles(editor)).toEqual(['helo']);
+    const calls = client.check.mock.calls.length;
+    editor.commands.setContent(old); // its entries were evicted when the cache outgrew the limit
+    await flush();
+    expect(client.check.mock.calls.length).toBe(calls + 1);
+    expect(squiggles(editor)).toEqual(['wrold']);
   });
 });

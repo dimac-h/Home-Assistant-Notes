@@ -16,6 +16,8 @@ export interface SpellcheckOptions {
   pair: string[];
   fallback: string;
   enabled: () => boolean;
+  /** Maximum number of cached block results before the cache is trimmed to the current document. */
+  cacheLimit?: number;
 }
 
 export interface WordAtCaret {
@@ -38,6 +40,7 @@ const DEBOUNCE_MS = 300;
 const MAX_PASSES = 5;
 /** How often applying results may be postponed while an IME composition is active (~6 s). */
 const MAX_COMPOSING_DEFERRALS = 20;
+export const CACHE_LIMIT = 2000;
 export const SPELLCHECK_STATE_EVENT = 'spellcheck-state';
 
 type CachedResult = Pick<BlockResult, 'lang' | 'misspelled'>;
@@ -45,6 +48,7 @@ type CachedResult = Pick<BlockResult, 'lang' | 'misspelled'>;
 /** Creates the extension; one instance serves exactly one editor. */
 export function createSpellcheckExtension(ExtensionClass: typeof Extension, options: SpellcheckOptions): AnyExtension {
   const { client, pair, enabled } = options;
+  const cacheLimit = options.cacheLimit ?? CACHE_LIMIT;
   const pluginKey = new PluginKey<DecorationSet>('spellcheck');
   const cache = new Map<string, CachedResult>();
   let view: EditorView | undefined;
@@ -159,7 +163,17 @@ export function createSpellcheckExtension(ExtensionClass: typeof Extension, opti
     deferrals = 0;
     current.dispatch(current.state.tr.setMeta(pluginKey, 'results').setMeta('addToHistory', false));
     notify();
+    trimCache(current.state.doc);
     if (passes < MAX_PASSES && resolve(collectBlocks(current.state.doc, pair)).some((e) => !e.result)) schedule();
+  }
+
+  /** Keeps memory bounded: past the limit only the entries the current document uses survive. */
+  function trimCache(doc: PMNode) {
+    if (cache.size <= cacheLimit) return;
+    const keep = new Map<string, CachedResult>();
+    for (const { key, result } of resolve(collectBlocks(doc, pair))) if (result) keep.set(key, result);
+    cache.clear();
+    for (const [key, result] of keep) cache.set(key, result);
   }
 
   function blockAtCaret(state: EditorState) {
