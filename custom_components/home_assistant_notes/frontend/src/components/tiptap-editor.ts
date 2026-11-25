@@ -142,7 +142,9 @@ export class HomeAssistantNotesTiptapEditor extends LitElement {
   // squiggles (it would double them) or when the note opted out; otherwise it
   // keeps its default.
   private _editorAttributes(): Record<string, string> {
-    const attributes: Record<string, string> = { lang: this._language() };
+    // setProps replaces the attributes wholesale, so keep what Tiptap set (role, ...).
+    const { spellcheck: _previous, ...kept } = (this._editor?.view.props.attributes ?? {}) as Record<string, string>;
+    const attributes: Record<string, string> = { ...kept, lang: this._language() };
     if (this._spell.active || !this.spellcheck) attributes.spellcheck = 'false';
     return attributes;
   }
@@ -183,16 +185,21 @@ export class HomeAssistantNotesTiptapEditor extends LitElement {
       console.warn('Home Assistant Notes: Tiptap failed to load, falling back to textarea', err);
       loaded = null;
     }
+    // Removed while Tiptap was loading: disconnectedCallback has already run, so
+    // creating the editor (and its worker) now would leak both.
+    if (!this.isConnected) return;
     if (!loaded || !this._mount) {
       this._fallback = true;
       this.requestUpdate();
       return;
     }
     const { Editor, Extension, extensions } = loaded;
+    const spell = this._spell;
     const spellcheckExtension = createSpellcheckExtension(Extension, {
       client: this._spell.proxy,
       pair: this._spell.pair,
-      fallback: this._language(),
+      // Read live by whoever inspects the options: the pair is only known after init.
+      get fallback() { return spell.fallback; },
       enabled: () => this._spell.active,
     });
     this._editor = new Editor({

@@ -2,6 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import './tiptap-editor';
 import type { HomeAssistantNotesTiptapEditor } from './tiptap-editor';
 import { DEBUG_EVENT } from '../debug-log';
+import * as extensionModule from '../spellcheck/extension';
+
+vi.mock('../spellcheck/extension', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../spellcheck/extension')>();
+  return { ...original, createSpellcheckExtension: vi.fn(original.createSpellcheckExtension) };
+});
+
 
 const FLAG = 'home-assistant-notes-debug';
 
@@ -152,22 +159,60 @@ describe('spellcheck', () => {
     expect(el.spellcheckLanguages).toEqual([]);
   });
 
-  it('shows the spellcheck-state event on the host element', async () => {
-    const { el } = await mountSpell({ config: config(['en']) });
+  it('shows the extension\'s spellcheck-state events on the host element', async () => {
+    const { el, clients } = await mountSpell({ config: config(['en']), content: '<p>hello world</p>' });
+    await vi.waitFor(() => expect(clients[0].init).toHaveBeenCalled());
+    await vi.waitFor(() => expect(el.spellcheckLanguages).toHaveLength(1));
     const onState = vi.fn();
     el.addEventListener('spellcheck-state', onState);
-    (el as any)._editor.view.dom.dispatchEvent(new CustomEvent('spellcheck-state', { bubbles: true, composed: true }));
-    expect(onState).toHaveBeenCalledOnce();
+    // A caret move makes the extension itself announce the state.
+    (el as any)._editor.commands.setTextSelection(3);
+    expect(onState).toHaveBeenCalled();
   });
 
-  it('dispatches spellcheck-state on the host once init completes', async () => {
-    const onState = vi.fn();
+  it('dispatches spellcheck-state on the host once init completes, and not before', async () => {
+    let release!: () => void;
+    const client = fakeClient({ init: vi.fn(() => new Promise<void>((r) => { release = r; })) });
     const el = document.createElement('home-assistant-notes-tiptap-editor');
-    el.addEventListener('spellcheck-state', onState);
+    const dispatch = vi.spyOn(el, 'dispatchEvent');
     el.spellcheckConfig = config(['en']);
-    el.spellcheckClientFactory = () => fakeClient();
+    el.spellcheckClientFactory = () => client;
     document.body.appendChild(el);
-    await vi.waitFor(() => expect(onState).toHaveBeenCalled());
+    await vi.waitFor(() => expect(client.init).toHaveBeenCalled());
+    const stateEvents = () => dispatch.mock.calls.filter(([e]) => e.type === 'spellcheck-state').length;
+    expect(stateEvents()).toBe(0);
+    release();
+    await vi.waitFor(() => expect(stateEvents()).toBe(1));
+  });
+
+  it('passes the extension a fallback that is the lang if in the pair, else the first code', async () => {
+    const create = vi.mocked(extensionModule.createSpellcheckExtension);
+    for (const [lang, expected] of [['nl-NL', 'nl'], ['de', 'en']] as const) {
+      create.mockClear();
+      const clients: any[] = [];
+      const el = document.createElement('home-assistant-notes-tiptap-editor');
+      el.lang = lang;
+      el.spellcheckConfig = config(['en', 'nl']);
+      el.spellcheckClientFactory = () => { const c = fakeClient(); clients.push(c); return c; };
+      document.body.appendChild(el);
+      await vi.waitFor(() => expect(clients[0]?.init).toHaveBeenCalled());
+      await vi.waitFor(() => expect(el.spellcheckLanguages).toHaveLength(2));
+      const options = create.mock.calls[0][1] as { fallback: string };
+      expect(options.fallback).toBe(expected);
+      expect(clients[0].init.mock.calls[0][1]).toBe(expected);
+      el.remove();
+    }
+  });
+
+  it('keeps the root attributes Tiptap set when the config changes', async () => {
+    const { el, root } = await mountSpell();
+    const snapshot = () => Object.fromEntries([...root().attributes].map((a) => [a.name, a.value]));
+    const { spellcheck: _s, lang: _l, ...before } = snapshot();
+    expect(before.role).toBe('textbox');
+    el.spellcheckConfig = config(['en']);
+    await vi.waitFor(() => expect(root().getAttribute('spellcheck')).toBe('false'));
+    const { spellcheck: _s2, lang: _l2, ...after } = snapshot();
+    expect(after).toEqual(before);
   });
 
   it('forwards suggest() to the client, and returns [] without one', async () => {
@@ -180,12 +225,60 @@ describe('spellcheck', () => {
     expect(await plain.suggest('helo', 'en')).toEqual([]);
   });
 
-  it('replaces a range without moving focus', async () => {
-    const { el } = await mountSpell({ content: '<p>helo</p>' });
-    const focus = vi.spyOn((el as any)._editor.commands, 'focus');
-    el.replaceRange(1, 5, 'hello');
-    expect((el as any)._editor.getHTML()).toBe('<p>hello</p>');
+  it('replaces a range without touching focus, selection or scroll', async () => {
+    const { el } = await mountSpell({ content: '<p>helo world</p>' });
+    const editor = (el as any)._editor;
+    editor.view.dom.blur();
+    const selection = editor.state.selection;
+    const focused = editor.view.hasFocus();
+    const focus = vi.spyOn(editor.view, 'focus');
+    const dispatch = vi.spyOn(editor.view, 'dispatch');
+    el.replaceRange(1, 5, 'hola');
+    expect(editor.getHTML()).toBe('<p>hola world</p>');
+    expect(dispatch).toHaveBeenCalledOnce();
+    expect((dispatch.mock.calls[0][0] as { scrolledIntoView: boolean }).scrolledIntoView).toBe(false);
     expect(focus).not.toHaveBeenCalled();
+    expect(editor.view.hasFocus()).toBe(focused);
+    expect(editor.state.selection.eq(selection)).toBe(true);
+  });
+
+  it('destroys the client when the element is disconnected', async () => {
+    const { el, clients } = await mountSpell({ config: config(['en']) });
+    await vi.waitFor(() => expect(el.spellcheckLanguages).toHaveLength(1));
+    el.remove();
+    expect(clients[0].destroy).toHaveBeenCalled();
+  });
+
+  it('creates no client when disconnected while the editor is still loading', async () => {
+    const factory = vi.fn(() => fakeClient());
+    const el = document.createElement('home-assistant-notes-tiptap-editor');
+    el.spellcheckConfig = config(['en']);
+    el.spellcheckClientFactory = factory;
+    document.body.appendChild(el);
+    el.remove();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(factory).not.toHaveBeenCalled();
+    expect((el as any)._editor).toBeNull();
+  });
+
+  it('discards a stale init that finishes after a newer config', async () => {
+    let release!: () => void;
+    const clients: any[] = [];
+    const factory = () => {
+      const c = fakeClient(clients.length === 0 ? { init: vi.fn(() => new Promise<void>((r) => { release = r; })) } : {});
+      clients.push(c);
+      return c;
+    };
+    const { el } = await mountSpell({ config: config(['en', 'nl']), factory });
+    await vi.waitFor(() => expect(clients[0].init).toHaveBeenCalled());
+    el.spellcheckConfig = config(['en', 'tr']);
+    await el.updateComplete;
+    release();
+    await vi.waitFor(() => expect(clients).toHaveLength(2));
+    await vi.waitFor(() => expect(clients[1].init).toHaveBeenCalled());
+    expect(clients[0].destroy).toHaveBeenCalled();
+    expect(clients[1].destroy).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(el.spellcheckLanguages.map((l) => l.code)).toEqual(['en', 'tr']));
   });
 
   describe('when spellcheck cannot start', () => {

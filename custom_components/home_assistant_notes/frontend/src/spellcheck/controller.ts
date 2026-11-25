@@ -56,6 +56,16 @@ export class SpellcheckController {
 
   constructor(private readonly options: SpellcheckControllerOptions) {}
 
+  /** The editor language if it is in the pair, else the pair's first code. */
+  get fallback(): string {
+    return this.fallbackFor(this.pair);
+  }
+
+  private fallbackFor(codes: string[]): string {
+    const lang = this.options.getLang().split('-')[0].toLowerCase();
+    return codes.includes(lang) || !codes.length ? lang : codes[0];
+  }
+
   update(config: SpellcheckConfig | null, enabled: boolean): Promise<void> {
     this.generation++;
     this.queued = { config, enabled };
@@ -133,8 +143,7 @@ export class SpellcheckController {
     const configs = await (client.loadConfigs ? client.loadConfigs(ready) : SpellWorkerClient.loadConfigs(ready));
     if (!configs.length) throw new Error('No spellcheck dictionary could be loaded');
     const codes = configs.map((c) => c.code);
-    const lang = this.options.getLang().split('-')[0].toLowerCase();
-    await client.init(configs, codes.includes(lang) ? lang : codes[0]);
+    await client.init(configs, this.fallbackFor(codes));
     await Promise.all([
       ...codes.flatMap((code) => (config.dictionary[code] ?? []).map((word) => client.addDictionaryWord(code, word))),
       client.setIgnored(config.ignored),

@@ -40,6 +40,8 @@ export class HomeAssistantNotesPanel extends LitElement {
 
   @state() private _spellcheckConfig: SpellcheckConfig | null = null;
 
+  private _initializing = false;
+  private _initGeneration = 0;
   private _unsubscribe?: () => void;
   private _unsubscribeSpellcheck?: () => void;
   private _spellcheckTimer?: ReturnType<typeof setTimeout>;
@@ -58,6 +60,8 @@ export class HomeAssistantNotesPanel extends LitElement {
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    this._initGeneration++;
+    this._initializing = false;
     this._unsubscribe?.();
     this._unsubscribe = undefined;
     this._unsubscribeSpellcheck?.();
@@ -121,21 +125,37 @@ export class HomeAssistantNotesPanel extends LitElement {
   }
 
   private async _init(): Promise<void> {
-    await this._loadNotes();
-    this._unsubscribe = await subscribeNoteEvents(this.hass, () => this._loadNotes());
-    await this._loadSpellcheckConfig();
-    // Language pair or dictionary changes and word-list edits arrive in bursts
-    // (one event per downloaded dictionary), so re-fetch once after they settle.
-    const unsubscribe = await subscribeSpellcheckEvents(this.hass, () => {
-      clearTimeout(this._spellcheckTimer);
-      this._spellcheckTimer = setTimeout(() => this._loadSpellcheckConfig(), 300);
-    });
-    if (this.isConnected) this._unsubscribeSpellcheck = unsubscribe;
-    else unsubscribe();
+    // `updated()` fires for every hass change while the subscription is still
+    // being set up, so only one init may be in flight.
+    if (this._initializing) return;
+    this._initializing = true;
+    const generation = ++this._initGeneration;
+    const stale = () => generation !== this._initGeneration;
+    try {
+      await this._loadNotes();
+      const unsubscribeNotes = await subscribeNoteEvents(this.hass, () => this._loadNotes());
+      if (stale()) return unsubscribeNotes();
+      this._unsubscribe = unsubscribeNotes;
+      await this._loadSpellcheckConfig();
+      // Language pair or dictionary changes and word-list edits arrive in bursts
+      // (one event per downloaded dictionary), so re-fetch once after they settle.
+      const unsubscribeSpellcheck = await subscribeSpellcheckEvents(this.hass, () => {
+        clearTimeout(this._spellcheckTimer);
+        this._spellcheckTimer = setTimeout(() => this._loadSpellcheckConfig(), 300);
+      });
+      if (stale()) return unsubscribeSpellcheck();
+      this._unsubscribeSpellcheck = unsubscribeSpellcheck;
+    } finally {
+      if (!stale()) this._initializing = false;
+    }
   }
 
   private async _loadSpellcheckConfig(): Promise<void> {
-    if (this.hass) this._spellcheckConfig = await getSpellcheckConfig(this.hass);
+    if (!this.hass) return;
+    // A failed refetch (null) keeps the previous config so a transient error
+    // does not switch the checker off.
+    const config = await getSpellcheckConfig(this.hass);
+    if (config) this._spellcheckConfig = config;
   }
 
   private async _loadNotes(): Promise<void> {
