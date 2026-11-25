@@ -1,8 +1,9 @@
 """Fixtures for testing the Home Assistant Notes integration."""
 from __future__ import annotations
 
+from collections.abc import Generator
 from typing import TYPE_CHECKING
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.setup import async_setup_component
@@ -43,8 +44,21 @@ def remove_extra_js_url_mock() -> MagicMock:
 
 
 @pytest.fixture
+def no_dictionary_downloads() -> Generator[None]:
+    """Never reach the network: setting up the entry would otherwise download dictionaries."""
+    with patch(
+        "custom_components.home_assistant_notes.dictionaries.DictionaryManager.async_ensure",
+        new=AsyncMock(),
+    ):
+        yield
+
+
+@pytest.fixture
 async def setup_integration(
-    hass: HomeAssistant, add_extra_js_url_mock: MagicMock, remove_extra_js_url_mock: MagicMock
+    hass: HomeAssistant,
+    add_extra_js_url_mock: MagicMock,
+    remove_extra_js_url_mock: MagicMock,
+    no_dictionary_downloads: None,
 ) -> MockConfigEntry:
     """Set up the home_assistant_notes integration with a fresh store."""
     # home_assistant_notes registers a static path on hass.http during setup, which

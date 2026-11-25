@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 import voluptuous as vol
+from homeassistant.setup import async_setup_component
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
 from custom_components.home_assistant_notes.__init__ import (
@@ -19,6 +20,8 @@ from custom_components.home_assistant_notes.words import WordsStorage
 
 if TYPE_CHECKING:
     from unittest.mock import MagicMock
+
+    from pytest_homeassistant.typing import ClientSessionGenerator
 
     from homeassistant.core import HomeAssistant
     from pytest_homeassistant.common import MockConfigEntry
@@ -291,3 +294,61 @@ def test_word_schema_validates_language() -> None:
     assert ADD_REMOVE_DICTIONARY_WORD_SCHEMA({"lang": "nl", "word": "x"})["lang"] == "nl"
     with pytest.raises(vol.Invalid):
         ADD_REMOVE_DICTIONARY_WORD_SCHEMA({"lang": "xx", "word": "x"})
+
+
+async def test_spellcheck_config_returns_pair_statuses_and_lists(
+    hass: HomeAssistant, setup_integration: MockConfigEntry, hass_ws_client: ClientSessionGenerator
+) -> None:
+    hass.config.language = "nl"
+    runtime = setup_integration.runtime_data
+    await runtime.words.async_add_dictionary_word("nl", "hasselt")
+    await runtime.words.async_add_ignored_word("xyzzy")
+    runtime.dictionaries._status["nl"] = "ready"
+
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id({"type": "home_assistant_notes/spellcheck_config"})
+    response = await client.receive_json()
+
+    assert response["success"]
+    assert response["result"] == {
+        "languages": [
+            {
+                "code": "nl", "name": "Nederlands", "tinyld": "nl", "status": "ready",
+                "aff_url": "/home_assistant_notes_dictionaries/nl/index.aff",
+                "dic_url": "/home_assistant_notes_dictionaries/nl/index.dic",
+            },
+            {
+                "code": "en", "name": "English", "tinyld": "en", "status": "missing",
+                "aff_url": "/home_assistant_notes_dictionaries/en/index.aff",
+                "dic_url": "/home_assistant_notes_dictionaries/en/index.dic",
+            },
+        ],
+        **runtime.words.get_lists(),
+    }
+    assert response["result"]["dictionary"]["nl"] == ["hasselt"]
+    assert response["result"]["ignored"] == ["xyzzy"]
+
+
+async def test_spellcheck_config_uses_stored_options(
+    hass: HomeAssistant, setup_integration: MockConfigEntry, hass_ws_client: ClientSessionGenerator
+) -> None:
+    hass.config_entries.async_update_entry(setup_integration, options={"languages": ["tr", "en"]})
+    await hass.async_block_till_done()
+
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id({"type": "home_assistant_notes/spellcheck_config"})
+    response = await client.receive_json()
+
+    assert [lang["code"] for lang in response["result"]["languages"]] == ["tr", "en"]
+
+
+async def test_spellcheck_config_errors_when_not_loaded(
+    hass: HomeAssistant, hass_ws_client: ClientSessionGenerator
+) -> None:
+    await async_setup_component(hass, DOMAIN, {})
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id({"type": "home_assistant_notes/spellcheck_config"})
+    response = await client.receive_json()
+
+    assert not response["success"]
+    assert response["error"]["code"] == "not_loaded"

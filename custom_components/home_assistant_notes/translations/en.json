@@ -143,5 +143,20 @@
     "not_loaded": {
       "message": "Home Assistant Notes is not set up. Add the integration in Settings > Devices & Services."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Spelling languages",
+        "description": "Choose the two languages your notes are checked in. Dictionaries are downloaded once, in the background. After changing them, reload the Notes panel.",
+        "data": {
+          "language_1": "First language",
+          "language_2": "Second language"
+        }
+      }
+    },
+    "error": {
+      "same_language": "Choose two different languages."
+    }
   }
 }

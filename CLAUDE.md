@@ -45,7 +45,8 @@ Publishing a GitHub Release triggers `.github/workflows/release.yml`, which buil
 **Backend (Python)** — standard HA integration pattern:
 - `__init__.py` — entry point: sets up storage, registers the iframe panel, and registers all four HA services (`create_note`, `update_note`, `delete_note`, `get_notes`)
 - `storage.py` — `NotesStorage` wraps HA's `homeassistant.helpers.storage.Store`; persists notes to `.storage/home_assistant_notes.notes` as a dict keyed by UUID
-- `config_flow.py` — minimal single-instance config flow (no user-configurable options)
+- `config_flow.py` — single-instance config flow plus an options flow where the user picks the two spellcheck languages (`language_1`, `language_2`, stored as `entry.options["languages"]`; saving starts a background dictionary download)
+- Websocket command `home_assistant_notes/spellcheck_config` (registered in `async_setup`, `__init__.py`) — gives the panel the language pair in effect with dictionary status and URLs, plus the personal dictionary and ignore lists
 - `const.py` — all domain constants, attribute names, default colors, and panel config
 
 **Frontend** — TypeScript + LitElement, built with Vite (`custom_components/home_assistant_notes/frontend/`), using HA's own native elements and theme tokens (`ha-card`, `ha-dialog`, `ha-button`, `ha-input`, etc.) rather than a custom design system:

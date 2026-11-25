@@ -2,7 +2,11 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Any
+
+OPTION_LANGUAGES = "languages"
 
 DICTIONARY_BASE_URL = "https://cdn.jsdelivr.net/npm"
 
@@ -51,3 +55,16 @@ def default_pair(ha_language: str) -> list[str]:
         return [primary, "en"]
     other = next(code for code in SUPPORTED_LANGUAGES if code != "en")
     return ["en", other]
+
+
+def get_language_pair(ha_language: str, options: Mapping[str, Any]) -> list[str]:
+    """The pair in effect: the stored options if valid, otherwise the default pair."""
+    stored = options.get(OPTION_LANGUAGES)
+    if (
+        isinstance(stored, (list, tuple))
+        and len(stored) == 2
+        and stored[0] != stored[1]
+        and all(code in SUPPORTED_LANGUAGES for code in stored)
+    ):
+        return list(stored)
+    return default_pair(ha_language)

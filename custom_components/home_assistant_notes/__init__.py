@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 import voluptuous as vol
 
+from homeassistant.components import websocket_api
 from homeassistant.components.frontend import (
     add_extra_js_url,
     async_remove_panel,
@@ -14,7 +15,7 @@ from homeassistant.components.frontend import (
 from homeassistant.components.panel_custom import async_register_panel
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
-from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
+from homeassistant.core import HomeAssistant, callback, ServiceCall, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
@@ -48,7 +49,7 @@ from .const import (
     PANEL_COMPONENT_NAME,
 )
 from .dictionaries import DictionaryManager
-from .languages import SUPPORTED_LANGUAGES
+from .languages import SUPPORTED_LANGUAGES, get_language_pair
 from .storage import NotesStorage
 from .words import WordsStorage
 
@@ -127,8 +128,37 @@ def _get_words(hass: HomeAssistant) -> WordsStorage:
     return _get_runtime_data(hass).words
 
 
+@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/spellcheck_config"})
+@callback
+def ws_spellcheck_config(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """Give the panel the language pair, dictionary files and word lists it needs."""
+    entry = next(
+        (e for e in hass.config_entries.async_entries(DOMAIN) if e.state is ConfigEntryState.LOADED),
+        None,
+    )
+    if entry is None:
+        connection.send_error(msg["id"], "not_loaded", "Home Assistant Notes is not set up.")
+        return
+    runtime: RuntimeData = entry.runtime_data
+    languages = []
+    for code in get_language_pair(hass.config.language, entry.options):
+        language = SUPPORTED_LANGUAGES[code]
+        languages.append({
+            "code": code,
+            "name": language.name,
+            "tinyld": language.tinyld,
+            "status": runtime.dictionaries.status(code),
+            "aff_url": runtime.dictionaries.url_for(code, "index.aff"),
+            "dic_url": runtime.dictionaries.url_for(code, "index.dic"),
+        })
+    connection.send_result(msg["id"], {"languages": languages, **runtime.words.get_lists()})
+
+
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Register the services; they live as long as Home Assistant, not the config entry."""
+    websocket_api.async_register_command(hass, ws_spellcheck_config)
 
     async def handle_create_note(call: ServiceCall) -> dict:
         """Handle the create note service."""
@@ -219,6 +249,19 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
 
 
+def _start_dictionary_download(hass: HomeAssistant, entry: NotesConfigEntry) -> None:
+    """Download the dictionaries of the current pair in the background."""
+    pair = get_language_pair(hass.config.language, entry.options)
+    entry.async_create_background_task(
+        hass, entry.runtime_data.dictionaries.async_ensure(pair), "home_assistant_notes_dictionaries"
+    )
+
+
+async def _async_options_updated(hass: HomeAssistant, entry: NotesConfigEntry) -> None:
+    """Fetch dictionaries for a newly chosen pair; the panel picks it up on its next load."""
+    _start_dictionary_download(hass, entry)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: NotesConfigEntry) -> bool:
     """Set up Home Assistant Notes from a config entry."""
     notes_storage = NotesStorage(hass)
@@ -230,6 +273,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: NotesConfigEntry) -> boo
     entry.runtime_data = RuntimeData(
         notes=notes_storage, words=words_storage, dictionaries=dictionaries
     )
+
+    _start_dictionary_download(hass, entry)
+    entry.async_on_unload(entry.add_update_listener(_async_options_updated))
 
     # Register frontend panel
     if "/home_assistant_notes_panel" not in _REGISTERED_STATIC_PATHS:
