@@ -2,8 +2,8 @@ import { LitElement, html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import './components/note-list';
 import './components/note-editor';
-import { getNotes, createNote, updateNote, deleteNote, subscribeNoteEvents } from './api';
-import type { Note } from './api';
+import { getNotes, createNote, updateNote, deleteNote, subscribeNoteEvents, getSpellcheckConfig, subscribeSpellcheckEvents, addDictionaryWord, addIgnoredWord } from './api';
+import type { Note, SpellcheckConfig } from './api';
 import { DEFAULT_NOTE_COLOR } from './colors';
 import type { HomeAssistant } from './ha-types';
 import { forwardDebugEventsToHa } from './debug-log';
@@ -38,7 +38,13 @@ export class HomeAssistantNotesPanel extends LitElement {
   @state() private _searchTerm = '';
   @state() private _view: 'list' | 'editor' = 'list';
 
+  @state() private _spellcheckConfig: SpellcheckConfig | null = null;
+
+  private _initializing = false;
+  private _initGeneration = 0;
   private _unsubscribe?: () => void;
+  private _unsubscribeSpellcheck?: () => void;
+  private _spellcheckTimer?: ReturnType<typeof setTimeout>;
   private _creatingNote = false;
   private _pushedEditorState = false;
 
@@ -54,8 +60,13 @@ export class HomeAssistantNotesPanel extends LitElement {
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    this._initGeneration++;
+    this._initializing = false;
     this._unsubscribe?.();
     this._unsubscribe = undefined;
+    this._unsubscribeSpellcheck?.();
+    this._unsubscribeSpellcheck = undefined;
+    clearTimeout(this._spellcheckTimer);
     window.removeEventListener('popstate', this._onPopState);
     window.removeEventListener('location-changed', this._openNoteFromUrl);
   }
@@ -114,8 +125,37 @@ export class HomeAssistantNotesPanel extends LitElement {
   }
 
   private async _init(): Promise<void> {
-    await this._loadNotes();
-    this._unsubscribe = await subscribeNoteEvents(this.hass, () => this._loadNotes());
+    // `updated()` fires for every hass change while the subscription is still
+    // being set up, so only one init may be in flight.
+    if (this._initializing) return;
+    this._initializing = true;
+    const generation = ++this._initGeneration;
+    const stale = () => generation !== this._initGeneration;
+    try {
+      await this._loadNotes();
+      const unsubscribeNotes = await subscribeNoteEvents(this.hass, () => this._loadNotes());
+      if (stale()) return unsubscribeNotes();
+      this._unsubscribe = unsubscribeNotes;
+      await this._loadSpellcheckConfig();
+      // Language pair or dictionary changes and word-list edits arrive in bursts
+      // (one event per downloaded dictionary), so re-fetch once after they settle.
+      const unsubscribeSpellcheck = await subscribeSpellcheckEvents(this.hass, () => {
+        clearTimeout(this._spellcheckTimer);
+        this._spellcheckTimer = setTimeout(() => this._loadSpellcheckConfig(), 300);
+      });
+      if (stale()) return unsubscribeSpellcheck();
+      this._unsubscribeSpellcheck = unsubscribeSpellcheck;
+    } finally {
+      if (!stale()) this._initializing = false;
+    }
+  }
+
+  private async _loadSpellcheckConfig(): Promise<void> {
+    if (!this.hass) return;
+    // A failed refetch (null) keeps the previous config so a transient error
+    // does not switch the checker off.
+    const config = await getSpellcheckConfig(this.hass);
+    if (config) this._spellcheckConfig = config;
   }
 
   private async _loadNotes(): Promise<void> {
@@ -165,6 +205,16 @@ export class HomeAssistantNotesPanel extends LitElement {
     this._leaveEditor();
   }
 
+  private _onSpellAddDictionaryWord = (e: CustomEvent<{ lang: string; word: string }>): void => {
+    if (!this.hass) return;
+    addDictionaryWord(this.hass, e.detail.lang, e.detail.word).catch((err) => console.warn('Could not add word to dictionary', err));
+  };
+
+  private _onSpellAddIgnoredWord = (e: CustomEvent<{ word: string }>): void => {
+    if (!this.hass) return;
+    addIgnoredWord(this.hass, e.detail.word).catch((err) => console.warn('Could not ignore word', err));
+  };
+
   render() {
     return html`
       <div class="layout">
@@ -181,9 +231,13 @@ export class HomeAssistantNotesPanel extends LitElement {
         <div class="editor-pane">
           <home-assistant-notes-editor
             .note=${this._selectedNote}
+            .language=${this.hass?.language}
+            .spellcheckConfig=${this._spellcheckConfig}
             @editor-back=${this._onEditorBack}
             @note-save=${this._onNoteSave}
             @note-delete=${this._onNoteDelete}
+            @spell-add-dictionary-word=${this._onSpellAddDictionaryWord}
+            @spell-add-ignored-word=${this._onSpellAddIgnoredWord}
           ></home-assistant-notes-editor>
         </div>
       </div>

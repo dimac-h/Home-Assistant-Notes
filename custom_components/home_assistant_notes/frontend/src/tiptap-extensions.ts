@@ -45,6 +45,7 @@ export async function loadTiptapExtensions() {
   });
   return {
     Editor,
+    Extension,
     extensions: [
       EmptyParagraphAfterListBackspace,
       // listItem: false — replaced below with a ListItem that also allows a

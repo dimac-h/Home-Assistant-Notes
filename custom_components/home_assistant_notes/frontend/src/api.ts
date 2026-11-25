@@ -6,6 +6,7 @@ export interface Note {
   content: string;
   color: string;
   pinned: boolean;
+  spellcheck: boolean;
   created: string;
   modified: string;
   tags: string[];
@@ -38,7 +39,7 @@ export async function createNote(
 
 export async function updateNote(
   hass: HomeAssistant,
-  params: { note_id: string; title?: string; content?: string; color?: string; pinned?: boolean },
+  params: { note_id: string; title?: string; content?: string; color?: string; pinned?: boolean; spellcheck?: boolean },
 ): Promise<void> {
   await hass.callService('home_assistant_notes', 'update_note', params);
 }
@@ -53,6 +54,44 @@ export function subscribeNoteEvents(hass: HomeAssistant, onEvent: () => void): P
     unsubs => () => unsubs.forEach(fn => {
       // HA rejects with "Subscription not found" if the socket reconnected (or the
       // subscription was already dropped) before we unsubscribe — nothing to clean up then.
+      try { Promise.resolve(fn()).catch(() => {}); } catch { /* already gone */ }
+    }),
+  );
+}
+
+export interface SpellcheckConfig {
+  languages: Array<{
+    code: string;
+    name: string;
+    tinyld: string;
+    status: 'missing' | 'downloading' | 'ready' | 'failed';
+    aff_url: string;
+    dic_url: string;
+  }>;
+  dictionary: Record<string, string[]>;
+  ignored: string[];
+}
+
+export async function getSpellcheckConfig(hass: HomeAssistant): Promise<SpellcheckConfig | null> {
+  try {
+    return await hass.connection.sendMessagePromise<SpellcheckConfig>({ type: 'home_assistant_notes/spellcheck_config' });
+  } catch {
+    return null;
+  }
+}
+
+export async function addDictionaryWord(hass: HomeAssistant, lang: string, word: string): Promise<void> {
+  await hass.callService('home_assistant_notes', 'add_dictionary_word', { lang, word });
+}
+
+export async function addIgnoredWord(hass: HomeAssistant, word: string): Promise<void> {
+  await hass.callService('home_assistant_notes', 'add_ignored_word', { word });
+}
+
+export function subscribeSpellcheckEvents(hass: HomeAssistant, onChange: () => void): Promise<() => void> {
+  const events = ['home_assistant_notes_spellcheck_changed', 'home_assistant_notes_words_changed'];
+  return Promise.all(events.map(e => hass.connection.subscribeEvents(onChange, e))).then(
+    unsubs => () => unsubs.forEach(fn => {
       try { Promise.resolve(fn()).catch(() => {}); } catch { /* already gone */ }
     }),
   );

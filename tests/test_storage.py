@@ -6,6 +6,9 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from homeassistant.helpers.storage import Store
+
+from custom_components.home_assistant_notes.const import STORAGE_KEY, STORAGE_VERSION
 from custom_components.home_assistant_notes.storage import NotesStorage
 
 if TYPE_CHECKING:
@@ -25,6 +28,7 @@ async def test_create_note_defaults(storage: NotesStorage) -> None:
     assert note["content"] == ""
     assert note["color"] == "#FFEB3B"
     assert note["pinned"] is False
+    assert note["spellcheck"] is True
     assert note["tags"] == []
     assert note["note_id"]
     assert note["created"] == note["modified"]
@@ -131,3 +135,35 @@ async def test_newest_note_is_at_index_zero(storage: NotesStorage) -> None:
     assert notes[0]["note_id"] == latest["note_id"], (
         "notes[0] must be the newest note; panel fallback relies on this"
     )
+
+
+async def test_update_note_spellcheck(hass: HomeAssistant, storage: NotesStorage) -> None:
+    note = await storage.async_create_note(title="Spelling")
+    updated = await storage.async_update_note(note["note_id"], spellcheck=False)
+    assert updated is not None
+    assert updated["spellcheck"] is False
+
+    reloaded = NotesStorage(hass)
+    await reloaded.async_load()
+    notes = await reloaded.async_get_all_notes()
+    assert notes[0]["spellcheck"] is False
+
+
+async def test_legacy_note_without_spellcheck_reads_true(hass: HomeAssistant) -> None:
+    legacy = {
+        "note_id": "legacy-1",
+        "title": "Old",
+        "content": "",
+        "color": "#FFEB3B",
+        "pinned": False,
+        "created": "2024-01-01T00:00:00+00:00",
+        "modified": "2024-01-01T00:00:00+00:00",
+        "tags": [],
+    }
+    store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
+    await store.async_save({"notes": {"legacy-1": legacy}})
+
+    s = NotesStorage(hass)
+    await s.async_load()
+    notes = await s.async_get_all_notes()
+    assert notes[0]["spellcheck"] is True

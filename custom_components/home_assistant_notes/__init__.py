@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
+
 import voluptuous as vol
 
+from homeassistant.components import websocket_api
 from homeassistant.components.frontend import (
     add_extra_js_url,
     async_remove_panel,
@@ -12,7 +15,7 @@ from homeassistant.components.frontend import (
 from homeassistant.components.panel_custom import async_register_panel
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
-from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
+from homeassistant.core import HomeAssistant, callback, ServiceCall, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
@@ -29,18 +32,42 @@ from .const import (
     ATTR_CONTENT,
     ATTR_COLOR,
     ATTR_PINNED,
+    ATTR_SPELLCHECK,
     ATTR_TAGS,
+    ATTR_LANG,
+    ATTR_WORD,
+    EVENT_SPELLCHECK_CHANGED,
+    EVENT_WORDS_CHANGED,
+    SERVICE_ADD_DICTIONARY_WORD,
+    SERVICE_REMOVE_DICTIONARY_WORD,
+    SERVICE_ADD_IGNORED_WORD,
+    SERVICE_REMOVE_IGNORED_WORD,
     DEFAULT_COLOR,
+    DICTIONARIES_URL_PATH,
     PANEL_TITLE,
     PANEL_ICON,
     PANEL_URL,
     PANEL_COMPONENT_NAME,
 )
+from .dictionaries import DictionaryManager
+from .languages import SUPPORTED_LANGUAGES, get_language_pair
 from .storage import NotesStorage
+from .words import WordsStorage
 
 _LOGGER = logging.getLogger(__name__)
 
-type NotesConfigEntry = ConfigEntry[NotesStorage]
+
+
+@dataclass
+class RuntimeData:
+    """Per-entry runtime objects."""
+
+    notes: NotesStorage
+    words: WordsStorage
+    dictionaries: DictionaryManager
+
+
+type NotesConfigEntry = ConfigEntry[RuntimeData]
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
@@ -54,6 +81,7 @@ CREATE_NOTE_SCHEMA = vol.Schema({
     vol.Optional(ATTR_COLOR, default=DEFAULT_COLOR): vol.Match(r'^#[0-9a-fA-F]{3}$|^#[0-9a-fA-F]{6}$'),
     vol.Optional(ATTR_PINNED, default=False): cv.boolean,
     vol.Optional(ATTR_TAGS, default=list): [cv.string],
+    vol.Optional(ATTR_SPELLCHECK, default=True): cv.boolean,
 })
 
 UPDATE_NOTE_SCHEMA = vol.Schema({
@@ -63,15 +91,25 @@ UPDATE_NOTE_SCHEMA = vol.Schema({
     vol.Optional(ATTR_COLOR): vol.Match(r'^#[0-9a-fA-F]{3}$|^#[0-9a-fA-F]{6}$'),
     vol.Optional(ATTR_PINNED): cv.boolean,
     vol.Optional(ATTR_TAGS): [cv.string],
+    vol.Optional(ATTR_SPELLCHECK): cv.boolean,
 })
 
 DELETE_NOTE_SCHEMA = vol.Schema({
     vol.Required(ATTR_NOTE_ID): cv.string,
 })
 
+ADD_REMOVE_DICTIONARY_WORD_SCHEMA = vol.Schema({
+    vol.Required(ATTR_LANG): vol.In(list(SUPPORTED_LANGUAGES)),
+    vol.Required(ATTR_WORD): cv.string,
+})
 
-def _get_storage(hass: HomeAssistant) -> NotesStorage:
-    """Return the storage of the loaded config entry, or raise if there is none."""
+IGNORED_WORD_SCHEMA = vol.Schema({
+    vol.Required(ATTR_WORD): cv.string,
+})
+
+
+def _get_runtime_data(hass: HomeAssistant) -> RuntimeData:
+    """Return the runtime data of the loaded config entry, or raise if there is none."""
     for entry in hass.config_entries.async_entries(DOMAIN):
         if entry.state is ConfigEntryState.LOADED:
             return entry.runtime_data
@@ -81,8 +119,47 @@ def _get_storage(hass: HomeAssistant) -> NotesStorage:
     )
 
 
+def _get_storage(hass: HomeAssistant) -> NotesStorage:
+    """Return the notes storage of the loaded config entry."""
+    return _get_runtime_data(hass).notes
+
+
+def _get_words(hass: HomeAssistant) -> WordsStorage:
+    """Return the word lists storage of the loaded config entry."""
+    return _get_runtime_data(hass).words
+
+
+@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/spellcheck_config"})
+@callback
+def ws_spellcheck_config(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """Give the panel the language pair, dictionary files and word lists it needs."""
+    entry = next(
+        (e for e in hass.config_entries.async_entries(DOMAIN) if e.state is ConfigEntryState.LOADED),
+        None,
+    )
+    if entry is None:
+        connection.send_error(msg["id"], "not_loaded", "Home Assistant Notes is not set up.")
+        return
+    runtime: RuntimeData = entry.runtime_data
+    languages = []
+    for code in get_language_pair(hass.config.language, entry.options):
+        language = SUPPORTED_LANGUAGES[code]
+        languages.append({
+            "code": code,
+            "name": language.name,
+            "tinyld": language.tinyld,
+            "status": runtime.dictionaries.status(code),
+            "aff_url": runtime.dictionaries.url_for(code, "index.aff"),
+            "dic_url": runtime.dictionaries.url_for(code, "index.dic"),
+        })
+    connection.send_result(msg["id"], {"languages": languages, **runtime.words.get_lists()})
+
+
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Register the services; they live as long as Home Assistant, not the config entry."""
+    websocket_api.async_register_command(hass, ws_spellcheck_config)
 
     async def handle_create_note(call: ServiceCall) -> dict:
         """Handle the create note service."""
@@ -92,6 +169,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             color=call.data[ATTR_COLOR],
             pinned=call.data[ATTR_PINNED],
             tags=call.data[ATTR_TAGS],
+            spellcheck=call.data[ATTR_SPELLCHECK],
         )
         hass.bus.async_fire(f"{DOMAIN}_note_created", note)
         return note
@@ -105,6 +183,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             color=call.data.get(ATTR_COLOR),
             pinned=call.data.get(ATTR_PINNED),
             tags=call.data.get(ATTR_TAGS),
+            spellcheck=call.data.get(ATTR_SPELLCHECK),
         )
         if note is None:
             raise HomeAssistantError(f"Note {call.data[ATTR_NOTE_ID]} not found")
@@ -125,6 +204,28 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         notes = await _get_storage(hass).async_get_all_notes()
         return {"notes": notes}
 
+    async def _change_words(coro) -> None:
+        """Await a word list change, then broadcast the new lists."""
+        try:
+            await coro
+        except ValueError as err:
+            raise ServiceValidationError(str(err)) from err
+        hass.bus.async_fire(EVENT_WORDS_CHANGED, _get_words(hass).get_lists())
+
+    async def handle_add_dictionary_word(call: ServiceCall) -> None:
+        await _change_words(_get_words(hass).async_add_dictionary_word(
+            call.data[ATTR_LANG], call.data[ATTR_WORD]))
+
+    async def handle_remove_dictionary_word(call: ServiceCall) -> None:
+        await _change_words(_get_words(hass).async_remove_dictionary_word(
+            call.data[ATTR_LANG], call.data[ATTR_WORD]))
+
+    async def handle_add_ignored_word(call: ServiceCall) -> None:
+        await _change_words(_get_words(hass).async_add_ignored_word(call.data[ATTR_WORD]))
+
+    async def handle_remove_ignored_word(call: ServiceCall) -> None:
+        await _change_words(_get_words(hass).async_remove_ignored_word(call.data[ATTR_WORD]))
+
     hass.services.async_register(
         DOMAIN, SERVICE_CREATE_NOTE, handle_create_note,
         schema=CREATE_NOTE_SCHEMA,
@@ -139,14 +240,46 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     hass.services.async_register(
         DOMAIN, SERVICE_GET_NOTES, handle_get_notes, supports_response=SupportsResponse.ONLY
     )
+    for name, handler, schema in (
+        (SERVICE_ADD_DICTIONARY_WORD, handle_add_dictionary_word, ADD_REMOVE_DICTIONARY_WORD_SCHEMA),
+        (SERVICE_REMOVE_DICTIONARY_WORD, handle_remove_dictionary_word, ADD_REMOVE_DICTIONARY_WORD_SCHEMA),
+        (SERVICE_ADD_IGNORED_WORD, handle_add_ignored_word, IGNORED_WORD_SCHEMA),
+        (SERVICE_REMOVE_IGNORED_WORD, handle_remove_ignored_word, IGNORED_WORD_SCHEMA),
+    ):
+        hass.services.async_register(DOMAIN, name, handler, schema=schema)
     return True
+
+
+def _start_dictionary_download(hass: HomeAssistant, entry: NotesConfigEntry) -> None:
+    """Download the dictionaries of the current pair in the background."""
+    pair = get_language_pair(hass.config.language, entry.options)
+    entry.async_create_background_task(
+        hass, entry.runtime_data.dictionaries.async_ensure_with_retry(pair), "home_assistant_notes_dictionaries"
+    )
+
+
+async def _async_options_updated(hass: HomeAssistant, entry: NotesConfigEntry) -> None:
+    """Tell the panel the pair changed, then fetch the dictionaries it needs."""
+    hass.bus.async_fire(EVENT_SPELLCHECK_CHANGED)
+    _start_dictionary_download(hass, entry)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: NotesConfigEntry) -> bool:
     """Set up Home Assistant Notes from a config entry."""
     notes_storage = NotesStorage(hass)
     await notes_storage.async_load()
-    entry.runtime_data = notes_storage
+    words_storage = WordsStorage(hass)
+    await words_storage.async_load()
+    dictionaries = DictionaryManager(
+        hass, on_change=lambda: hass.bus.async_fire(EVENT_SPELLCHECK_CHANGED)
+    )
+    await dictionaries.async_load()
+    entry.runtime_data = RuntimeData(
+        notes=notes_storage, words=words_storage, dictionaries=dictionaries
+    )
+
+    _start_dictionary_download(hass, entry)
+    entry.async_on_unload(entry.add_update_listener(_async_options_updated))
 
     # Register frontend panel
     if "/home_assistant_notes_panel" not in _REGISTERED_STATIC_PATHS:
@@ -158,6 +291,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: NotesConfigEntry) -> boo
             )
         ])
         _REGISTERED_STATIC_PATHS.add("/home_assistant_notes_panel")
+
+    # Downloaded spellcheck dictionaries (the directory is created by async_load)
+    if DICTIONARIES_URL_PATH not in _REGISTERED_STATIC_PATHS:
+        await hass.http.async_register_static_paths([
+            StaticPathConfig(
+                url_path=DICTIONARIES_URL_PATH,
+                path=dictionaries.base_path,
+                cache_headers=True,
+            )
+        ])
+        _REGISTERED_STATIC_PATHS.add(DICTIONARIES_URL_PATH)
 
     # Load the Lovelace card on every dashboard so it shows up in the card picker
     # without users having to add a dashboard resource by hand

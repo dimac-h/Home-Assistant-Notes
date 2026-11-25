@@ -9,5 +9,6 @@ export interface Connection {
 
 export interface HomeAssistant {
   connection: Connection;
+  language?: string;
   callService(domain: string, service: string, data?: Record<string, unknown>): Promise<unknown>;
 }

@@ -18,6 +18,7 @@
 - Ten note colors with pin support
 - Real-time search
 - Dashboard card to display notes on any view with filter and configuration options
+- Spellcheck that works in two languages at once, picking the right one for every paragraph
 - Auto-save
 - Dark mode
 
@@ -43,7 +44,7 @@ Go to **Settings → Devices & Services → Add Integration** and search for *Ho
 
 ## Actions
 
-The integration provides four actions (services). They are available in the Actions picker, automations, scripts and Developer Tools.
+The integration provides eight actions (services): four for notes and four for the spellcheck word lists. They are available in the Actions picker, automations, scripts and Developer Tools.
 
 | Action | Fields | Returns |
 |---|---|---|
@@ -51,8 +52,12 @@ The integration provides four actions (services). They are available in the Acti
 | `home_assistant_notes.update_note` | `note_id` (required), `title`, `content`, `color`, `pinned`, `tags` | Nothing. Fails if the note doesn't exist |
 | `home_assistant_notes.delete_note` | `note_id` (required) | Nothing. Fails if the note doesn't exist |
 | `home_assistant_notes.get_notes` | none | `{ notes: [...] }` (response only) |
+| `home_assistant_notes.add_dictionary_word` | `lang` (required), `word` (required) | Nothing. Adds a word to the personal dictionary of one language |
+| `home_assistant_notes.remove_dictionary_word` | `lang` (required), `word` (required) | Nothing |
+| `home_assistant_notes.add_ignored_word` | `word` (required) | Nothing. Adds a word to the ignore list (all languages) |
+| `home_assistant_notes.remove_ignored_word` | `word` (required) | Nothing |
 
-Each action also fires an event you can use as an automation trigger: `home_assistant_notes_note_created`, `home_assistant_notes_note_updated` (the note is attached) and `home_assistant_notes_note_deleted` (carries `note_id`).
+Each action also fires an event you can use as an automation trigger: `home_assistant_notes_note_created`, `home_assistant_notes_note_updated` (the note is attached) and `home_assistant_notes_note_deleted` (carries `note_id`). Changes to the word lists fire `home_assistant_notes_words_changed`, and changing the spellcheck languages fires `home_assistant_notes_spellcheck_changed`.
 
 ```yaml
 action: home_assistant_notes.create_note
@@ -80,6 +85,58 @@ response_variable: result   # result.notes is a list of note objects
 | **🎨▾** | Note color                                             |
 | **📌**  | Pin / unpin                                            |
 | **🔗**  | Insert / remove link                                   |
+
+## Spellcheck
+
+Notes are spell-checked while you type. A misspelled word gets a wavy underline, in the error color of your theme.
+
+It is made for people who write in more than one language. Home Assistant Notes works out the language of every paragraph and list item by itself, so one note can have Dutch and English (or Turkish and English, or any other pair) side by side. If a line is too short to tell, it simply uses the language of the line above it.
+
+**Fixing a word.** Put your cursor in an underlined word and a small bar appears above the toolbar with suggestions. Tap one to replace the word. The bar has two more buttons:
+
+- **Add to dictionary**: the word counts as correct from now on in that language, and can show up as a suggestion for other words.
+- **Ignore**: the word is never underlined again, but it is not used as a suggestion. Handy for names.
+
+Both lists are kept in Home Assistant, so every device you use shares them.
+
+**The language button.** The first button in the toolbar shows the language of the paragraph you are in. If it guessed wrong, tap it and pick your other language. Pick **Auto-detect** to let it guess again. **Don't check** turns the spellchecker off for the whole note. The button then says "Off", and **Check spelling** turns it back on.
+
+The title of a note is not part of this: it keeps using your browser's own spellcheck.
+
+### Choosing your two languages
+
+Go to **Settings → Devices & services → Home Assistant Notes → Configure** and pick the two languages you write in. Out of the box you get the language of your Home Assistant plus English (or English plus Nederlands, if your Home Assistant language isn't available).
+
+Home Assistant then downloads the word lists in the background. Bigger languages can take a minute. When they are ready the underlines show up on their own: no restart, no reload. If a download fails, for example because the internet isn't up yet after a restart, it tries again a few times by itself.
+
+You can choose from 17 languages: English, Nederlands, Türkçe, Français, Deutsch, Español, Português, Italiano, Ελληνικά, Svenska, Norsk bokmål, Magyar, Română, Русский, Polski, עברית and 한국어.
+
+Your notes are never sent anywhere. The only thing that is downloaded is the word list itself, once, by your Home Assistant, from the public jsDelivr package host. After that everything happens on your own devices, and your Home Assistant serves the word lists itself.
+
+### Dictionary licenses
+
+The word lists are open-source dictionaries made by other projects (the `dictionary-xx` packages on npm). Home Assistant Notes does not include them: your Home Assistant downloads the ones you choose. Each has its own license:
+
+| Language | Package | License | Size |
+|---|---|---|---|
+| English | `dictionary-en@4.0.0` | MIT AND BSD | 0.6 MB |
+| Nederlands | `dictionary-nl@2.0.0` | BSD-3-Clause OR CC-BY-3.0 | 2.6 MB |
+| Türkçe | `dictionary-tr@2.0.0` | MIT | 9.4 MB |
+| Français | `dictionary-fr@3.0.0` | MPL-2.0 | 1.4 MB |
+| Deutsch | `dictionary-de@3.0.0` | GPL-2.0 OR GPL-3.0 | 1.1 MB |
+| Español | `dictionary-es@4.0.0` | GPL-3.0 OR LGPL-3.0 OR MPL-1.1 | 0.9 MB |
+| Português | `dictionary-pt@4.0.0` | LGPL-3.0 OR MPL-2.0 | 5.5 MB |
+| Italiano | `dictionary-it@2.0.0` | GPL-3.0 | 1.4 MB |
+| Ελληνικά | `dictionary-el@4.0.0` | GPL-2.0 OR LGPL-2.1 OR MPL-1.1 | 19.4 MB |
+| Svenska | `dictionary-sv@4.0.0` | LGPL-3.0 | 2.4 MB |
+| Norsk bokmål | `dictionary-nb@3.0.0` | GPL-2.0 | 5.4 MB |
+| Magyar | `dictionary-hu@3.0.0` | GPL-2.0 OR LGPL-2.1 OR MPL-1.1 | 3.9 MB |
+| Română | `dictionary-ro@3.0.0` | GPL-2.0 OR LGPL-2.1 OR MPL-1.1 | 2.3 MB |
+| Русский | `dictionary-ru@3.0.0` | BSD-3-Clause | 3.6 MB |
+| Polski | `dictionary-pl@2.0.0` | GPL-3.0 OR LGPL-3.0 OR MPL-2.0 | 5.0 MB |
+| עברית | `dictionary-he@2.0.0` | AGPL-3.0 | 5.8 MB |
+| 한국어 | `dictionary-ko@2.0.0` | GPL-2.0 OR LGPL-2.1 OR MPL-1.1 | 14.0 MB |
+
 ## Use cases
 
 - **Shared shopping list**: a checklist note on the kitchen tablet dashboard that everyone can tick off.
@@ -97,11 +154,15 @@ response_variable: result   # result.notes is a list of note objects
 
 **Home Assistant version required** 2026.11.0 or newer.
 
+**Does the spellcheck send my notes anywhere?** No. Only the word lists are downloaded (once, by Home Assistant). Your notes stay in your Home Assistant.
+
 **Can I use notes in automations?** Yes. The `create_note`, `update_note`, `delete_note`, and `get_notes` services are available in the Actions picker and in YAML.
 
 ## Troubleshooting
 
 **Panel not in sidebar** — disable and re-enable the integration in Settings → Devices & Services, then hard-refresh the browser.
+
+**No underlines while spellchecking?** — the word list for your language may still be downloading (it needs internet access once). Check the language button in the toolbar: if it says "Off", spellcheck is switched off for that note. You can also check your two languages under **Settings → Devices & services → Home Assistant Notes → Configure**.
 
 **Card is not loading** — check the browser console for errors. The card type is `custom:home-assistant-notes-card`.
 

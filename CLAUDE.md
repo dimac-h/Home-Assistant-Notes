@@ -43,14 +43,22 @@ Publishing a GitHub Release triggers `.github/workflows/release.yml`, which buil
 ## Architecture
 
 **Backend (Python)** — standard HA integration pattern:
-- `__init__.py` — entry point: sets up storage, registers the iframe panel, and registers all four HA services (`create_note`, `update_note`, `delete_note`, `get_notes`)
+- `__init__.py` — entry point: sets up storage, registers the iframe panel, and registers the HA services (`create_note`, `update_note`, `delete_note`, `get_notes`, plus `add_dictionary_word`, `remove_dictionary_word`, `add_ignored_word`, `remove_ignored_word` for the spellcheck word lists)
 - `storage.py` — `NotesStorage` wraps HA's `homeassistant.helpers.storage.Store`; persists notes to `.storage/home_assistant_notes.notes` as a dict keyed by UUID
-- `config_flow.py` — minimal single-instance config flow (no user-configurable options)
+- `config_flow.py` — single-instance config flow plus an options flow where the user picks the two spellcheck languages (`language_1`, `language_2`, stored as `entry.options["languages"]`; saving starts a background dictionary download)
+- Websocket command `home_assistant_notes/spellcheck_config` (registered in `async_setup`, `__init__.py`) — gives the panel the language pair in effect with dictionary status and URLs, plus the personal dictionary and ignore lists
+- `languages.py` — the one canonical list of the 17 supported spellcheck languages (name, pinned `dictionary-<code>` npm package/version, tinyld code), plus pair defaults/validation
+- `dictionaries.py` — downloads the pinned Hunspell `index.aff`/`index.dic` from the jsdelivr CDN into the HA config dir and serves them locally; note text never leaves the device
+- `words.py` — `Store`-backed personal dictionary (per language) and ignore list (language-independent), shared across devices; changes fire `home_assistant_notes_words_changed`, a changed language pair fires `home_assistant_notes_spellcheck_changed`
 - `const.py` — all domain constants, attribute names, default colors, and panel config
 
 **Frontend** — TypeScript + LitElement, built with Vite (`custom_components/home_assistant_notes/frontend/`), using HA's own native elements and theme tokens (`ha-card`, `ha-dialog`, `ha-button`, `ha-input`, etc.) rather than a custom design system:
 - `frontend/src/panel.ts` — full-page notes UI, built to `www/home-assistant-notes-panel.js` and served as a sidebar panel
 - `frontend/src/card.ts` — custom Lovelace card (`custom:home-assistant-notes-card`), built to `www/home-assistant-notes-card.js`
+- `frontend/src/spellcheck/` — local spellchecking: `core` pieces (`blocks.ts`, `tokenize.ts`, `detect.ts` per-block language detection, `checker.ts` nspell wrapper) run inside `worker.ts`; `worker-client.ts` is the promise-based main-thread client; `controller.ts` ties it to the panel (word lists, config, events); `extension.ts` is the TipTap/ProseMirror plugin that draws `.spell-error` inline decorations. The squiggle CSS lives in `tiptap-editor.ts`'s own `static styles`
+- `frontend/src/components/note-spell-strip.ts` — suggestion strip above the toolbar; the language chip (language switch, "Don't check", "Check spelling") is the first item in `note-toolbar.ts`
+- The worker is bundled by Vite from `new Worker(new URL(...))` and emitted to `www/assets/`; the card bundle must not contain any checker code
+- `docs/` is git-ignored local planning (specs, plans); never commit it
 
 The panel communicates with HA backend by calling HA services via the HA WebSocket API / REST API from the browser.
 
@@ -98,6 +106,7 @@ Services don't return values directly. Results are communicated by firing HA bus
     "content": str,
     "color": str,        # hex code, default "#FFEB3B"
     "pinned": bool,
+    "spellcheck": bool,  # default True
     "created": str,      # ISO 8601
     "modified": str,     # ISO 8601
     "tags": list[str],

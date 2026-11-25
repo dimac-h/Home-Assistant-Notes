@@ -35,6 +35,10 @@
         "tags": {
           "name": "Tags",
           "description": "Tags for organizing the note."
+        },
+        "spellcheck": {
+          "name": "Spellcheck",
+          "description": "Whether spelling should be checked in the note."
         }
       }
     },
@@ -65,6 +69,10 @@
         "tags": {
           "name": "Tags",
           "description": "Updated tags for the note."
+        },
+        "spellcheck": {
+          "name": "Spellcheck",
+          "description": "Whether spelling should be checked in the note."
         }
       }
     },
@@ -81,11 +89,74 @@
     "get_notes": {
       "name": "Get Notes",
       "description": "Retrieve all notes. Returns a response object with a \"notes\" list."
+    },
+    "add_dictionary_word": {
+      "name": "Add Dictionary Word",
+      "description": "Add a word to the personal spellcheck dictionary of a language.",
+      "fields": {
+        "lang": {
+          "name": "Language",
+          "description": "The language code of the dictionary."
+        },
+        "word": {
+          "name": "Word",
+          "description": "The word to add."
+        }
+      }
+    },
+    "remove_dictionary_word": {
+      "name": "Remove Dictionary Word",
+      "description": "Remove a word from the personal spellcheck dictionary of a language.",
+      "fields": {
+        "lang": {
+          "name": "Language",
+          "description": "The language code of the dictionary."
+        },
+        "word": {
+          "name": "Word",
+          "description": "The word to remove."
+        }
+      }
+    },
+    "add_ignored_word": {
+      "name": "Add Ignored Word",
+      "description": "Add a word to the spellcheck ignore list, which applies to every language.",
+      "fields": {
+        "word": {
+          "name": "Word",
+          "description": "The word to ignore."
+        }
+      }
+    },
+    "remove_ignored_word": {
+      "name": "Remove Ignored Word",
+      "description": "Remove a word from the spellcheck ignore list.",
+      "fields": {
+        "word": {
+          "name": "Word",
+          "description": "The word to stop ignoring."
+        }
+      }
     }
   },
   "exceptions": {
     "not_loaded": {
       "message": "Home Assistant Notes is not set up. Add the integration in Settings > Devices & Services."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Spelling languages",
+        "description": "Choose the two languages for your notes. The language dictionaries are downloaded once in the background and then served from HA.",
+        "data": {
+          "language_1": "First language",
+          "language_2": "Second language"
+        }
+      }
+    },
+    "error": {
+      "same_language": "Choose two different languages."
     }
   }
 }

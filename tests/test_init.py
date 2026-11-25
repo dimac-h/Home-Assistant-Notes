@@ -1,22 +1,29 @@
 """Tests for Home Assistant Notes setup, services, and events."""
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 import voluptuous as vol
+from homeassistant.setup import async_setup_component
+from pytest_homeassistant.common import async_capture_events
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
 from custom_components.home_assistant_notes.__init__ import (
     CREATE_NOTE_SCHEMA,
     DELETE_NOTE_SCHEMA,
+    ADD_REMOVE_DICTIONARY_WORD_SCHEMA,
     UPDATE_NOTE_SCHEMA,
 )
-from custom_components.home_assistant_notes.const import CARD_MODULE_URL, DOMAIN
-from custom_components.home_assistant_notes.storage import NotesStorage
+from custom_components.home_assistant_notes.const import CARD_MODULE_URL, DOMAIN, EVENT_SPELLCHECK_CHANGED
+from custom_components.home_assistant_notes.languages import SUPPORTED_LANGUAGES
 
 if TYPE_CHECKING:
     from unittest.mock import MagicMock
+
+    from pytest_homeassistant.typing import ClientSessionGenerator
 
     from homeassistant.core import HomeAssistant
     from pytest_homeassistant.common import MockConfigEntry
@@ -87,6 +94,24 @@ async def test_update_note_service_fires_event(hass: HomeAssistant, setup_integr
     assert events[0].data["title"] == "B"
 
 
+async def test_update_note_service_accepts_spellcheck(
+    hass: HomeAssistant, setup_integration: MockConfigEntry
+) -> None:
+    created = await hass.services.async_call(
+        DOMAIN, "create_note", {"title": "A"}, blocking=True, return_response=True,
+    )
+    assert created["spellcheck"] is True
+    events = []
+    hass.bus.async_listen(f"{DOMAIN}_note_updated", events.append)
+
+    await hass.services.async_call(
+        DOMAIN, "update_note", {"note_id": created["note_id"], "spellcheck": False}, blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    assert events[0].data["spellcheck"] is False
+
+
 async def test_update_note_service_missing_note_raises(
     hass: HomeAssistant, setup_integration: MockConfigEntry
 ) -> None:
@@ -131,12 +156,6 @@ async def test_unload_removes_card_module(
 ) -> None:
     assert await hass.config_entries.async_unload(setup_integration.entry_id)
     remove_extra_js_url_mock.assert_called_once_with(hass, CARD_MODULE_URL)
-
-
-async def test_entry_exposes_storage_as_runtime_data(
-    setup_integration: MockConfigEntry,
-) -> None:
-    assert isinstance(setup_integration.runtime_data, NotesStorage)
 
 
 # ---------------------------------------------------------------------------
@@ -233,3 +252,128 @@ class TestDeleteNoteSchema:
     def test_missing_note_id_raises(self):
         with pytest.raises(vol.Invalid):
             DELETE_NOTE_SCHEMA({})
+
+
+# ---------------------------------------------------------------------------
+# Word list services
+# ---------------------------------------------------------------------------
+
+async def test_word_services_update_store_and_fire_event(
+    hass: HomeAssistant, setup_integration: MockConfigEntry
+) -> None:
+    events = []
+    hass.bus.async_listen(f"{DOMAIN}_words_changed", events.append)
+
+    async def call(service: str, data: dict) -> None:
+        await hass.services.async_call(DOMAIN, service, data, blocking=True)
+        await hass.async_block_till_done()
+
+    await call("add_dictionary_word", {"lang": "tr", "word": "Ayşe"})
+    assert events[-1].data == {"dictionary": {"tr": ["ayşe"]}, "ignored": []}
+    await call("add_ignored_word", {"word": "Zigbee"})
+    assert events[-1].data == {"dictionary": {"tr": ["ayşe"]}, "ignored": ["zigbee"]}
+    assert setup_integration.runtime_data.words.get_lists() == events[-1].data
+    await call("remove_dictionary_word", {"lang": "tr", "word": "ayşe"})
+    assert events[-1].data == {"dictionary": {}, "ignored": ["zigbee"]}
+    await call("remove_ignored_word", {"word": "zigbee"})
+    assert events[-1].data == {"dictionary": {}, "ignored": []}
+    assert len(events) == 4
+
+
+async def test_word_service_rejects_empty_word(
+    hass: HomeAssistant, setup_integration: MockConfigEntry
+) -> None:
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(DOMAIN, "add_ignored_word", {"word": "  "}, blocking=True)
+
+
+def test_word_schema_validates_language() -> None:
+    assert ADD_REMOVE_DICTIONARY_WORD_SCHEMA({"lang": "nl", "word": "x"})["lang"] == "nl"
+    with pytest.raises(vol.Invalid):
+        ADD_REMOVE_DICTIONARY_WORD_SCHEMA({"lang": "xx", "word": "x"})
+
+
+async def test_spellcheck_config_returns_pair_statuses_and_lists(
+    hass: HomeAssistant, setup_integration: MockConfigEntry, hass_ws_client: ClientSessionGenerator
+) -> None:
+    hass.config.language = "nl"
+    runtime = setup_integration.runtime_data
+    await runtime.words.async_add_dictionary_word("nl", "hasselt")
+    await runtime.words.async_add_ignored_word("xyzzy")
+    runtime.dictionaries._status["nl"] = "ready"
+
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id({"type": "home_assistant_notes/spellcheck_config"})
+    response = await client.receive_json()
+
+    assert response["success"]
+    assert response["result"] == {
+        "languages": [
+            {
+                "code": "nl", "name": "Nederlands", "tinyld": "nl", "status": "ready",
+                "aff_url": "/home_assistant_notes_dictionaries/nl/index.aff?v=" + SUPPORTED_LANGUAGES["nl"].version,
+                "dic_url": "/home_assistant_notes_dictionaries/nl/index.dic?v=" + SUPPORTED_LANGUAGES["nl"].version,
+            },
+            {
+                "code": "en", "name": "English", "tinyld": "en", "status": "missing",
+                "aff_url": "/home_assistant_notes_dictionaries/en/index.aff?v=" + SUPPORTED_LANGUAGES["en"].version,
+                "dic_url": "/home_assistant_notes_dictionaries/en/index.dic?v=" + SUPPORTED_LANGUAGES["en"].version,
+            },
+        ],
+        **runtime.words.get_lists(),
+    }
+    assert response["result"]["dictionary"]["nl"] == ["hasselt"]
+    assert response["result"]["ignored"] == ["xyzzy"]
+
+
+async def test_spellcheck_config_uses_stored_options(
+    hass: HomeAssistant, setup_integration: MockConfigEntry, hass_ws_client: ClientSessionGenerator
+) -> None:
+    hass.config_entries.async_update_entry(setup_integration, options={"languages": ["tr", "en"]})
+    await hass.async_block_till_done()
+
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id({"type": "home_assistant_notes/spellcheck_config"})
+    response = await client.receive_json()
+
+    assert [lang["code"] for lang in response["result"]["languages"]] == ["tr", "en"]
+
+
+async def test_spellcheck_config_errors_when_not_loaded(
+    hass: HomeAssistant, hass_ws_client: ClientSessionGenerator
+) -> None:
+    await async_setup_component(hass, DOMAIN, {})
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id({"type": "home_assistant_notes/spellcheck_config"})
+    response = await client.receive_json()
+
+    assert not response["success"]
+    assert response["error"]["code"] == "not_loaded"
+
+
+async def test_options_update_fires_spellcheck_changed(
+    hass: HomeAssistant, setup_integration: MockConfigEntry
+) -> None:
+    events = async_capture_events(hass, EVENT_SPELLCHECK_CHANGED)
+    hass.config_entries.async_update_entry(setup_integration, options={"languages": ["tr", "en"]})
+    await hass.async_block_till_done()
+
+    assert len(events) == 1
+    assert events[0].data == {}
+
+
+async def test_dictionary_status_change_fires_spellcheck_changed(
+    hass: HomeAssistant, setup_integration: MockConfigEntry
+) -> None:
+    events = async_capture_events(hass, EVENT_SPELLCHECK_CHANGED)
+    setup_integration.runtime_data.dictionaries._notify()
+    await hass.async_block_till_done()
+
+    assert len(events) == 1
+
+
+def test_options_strings_match_english_translation() -> None:
+    base = Path(__file__).parent.parent / "custom_components" / "home_assistant_notes"
+    strings = json.loads((base / "strings.json").read_text(encoding="utf-8"))
+    english = json.loads((base / "translations/en.json").read_text(encoding="utf-8"))
+    assert strings["options"] == english["options"]

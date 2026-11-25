@@ -3,8 +3,9 @@ import { customElement, property, query, state } from 'lit/decorators.js';
 import { mdiCheck, mdiArrowLeft } from '@mdi/js';
 import './note-toolbar';
 import './tiptap-editor';
+import './note-spell-strip';
 import type { HomeAssistantNotesTiptapEditor, ToolbarAction } from './tiptap-editor';
-import type { Note } from '../api';
+import type { Note, SpellcheckConfig } from '../api';
 
 // Sorts every checklist in the note's content: unchecked items on top,
 // checked items below, each group alphabetical. Applied wholesale when a
@@ -49,6 +50,9 @@ export class HomeAssistantNotesEditor extends LitElement {
       padding: 20px 24px 40px;
     }
     home-assistant-notes-tiptap-editor { flex: 1 0 auto; display: flex; flex-direction: column; }
+    /* Sits directly above the toolbar; the toolbar's bottom margin (keyboard / home
+       indicator aware) is untouched, and a hidden strip takes no space. */
+    home-assistant-notes-spell-strip { flex-shrink: 0; min-width: 0; margin: 8px 12px 0; }
     home-assistant-notes-toolbar {
       flex-shrink: 0;
       margin: 8px 12px 12px;
@@ -75,9 +79,20 @@ export class HomeAssistantNotesEditor extends LitElement {
   `;
 
   @property({ attribute: false }) note: Note | null = null;
+  // HA's UI language; becomes the editor's default spellcheck language.
+  @property({ attribute: false }) language?: string;
+  @property({ attribute: false }) spellcheckConfig: SpellcheckConfig | null = null;
 
   @state() private _pendingDelete = false;
   @state() private _justSaved = false;
+  @state() private _spellWord: string | null = null;
+  @state() private _spellSuggestions: string[] = [];
+  // Language of the block at the caret, as last reported by the editor.
+  @state() private _blockLang: { code: string; manual: boolean } | null = null;
+  // The note-wide switch as just toggled, until the saved note catches up.
+  @state() private _spellcheckOverride: boolean | null = null;
+  // word + language the strip is showing or fetching suggestions for.
+  private _spellKey = '';
 
   @query('home-assistant-notes-tiptap-editor') private _tiptap?: HomeAssistantNotesTiptapEditor;
   @query('.title-input') private _titleInput?: HTMLTextAreaElement;
@@ -110,8 +125,17 @@ export class HomeAssistantNotesEditor extends LitElement {
   willUpdate(changed: Map<string, unknown>): void {
     if (!changed.has('note')) return;
     const previous = changed.get('note') as Note | null | undefined;
+    // The departing note's effective switch, read before the override is dropped.
+    const previousSpellcheck = this._spellcheckOverride ?? previous?.spellcheck !== false;
+    if (previous?.note_id !== this.note?.note_id || this.note?.spellcheck === this._spellcheckOverride) {
+      this._spellcheckOverride = null;
+    }
     if (previous?.note_id === this.note?.note_id) return;
-    if (previous) this._flushSorted(previous);
+    this._spellKey = '';
+    this._spellWord = null;
+    this._spellSuggestions = [];
+    this._blockLang = null;
+    if (previous) this._flushSorted(previous, previousSpellcheck);
     this._displayContent = this.note ? sortTaskListsHtml(this.note.content || '') : '';
   }
 
@@ -184,6 +208,7 @@ export class HomeAssistantNotesEditor extends LitElement {
       content: overrides.content ?? this._tiptap?.getHTML() ?? this.note.content,
       color: overrides.color ?? this.note.color,
       pinned: overrides.pinned ?? this.note.pinned,
+      spellcheck: overrides.spellcheck ?? this._spellcheckOn,
     };
     this.dispatchEvent(new CustomEvent('note-save', { detail, bubbles: true, composed: true }));
     this._justSaved = true;
@@ -204,17 +229,67 @@ export class HomeAssistantNotesEditor extends LitElement {
   // only toggles which pane is visible — willUpdate's same-note guard would
   // otherwise skip refreshing the display, leaving the live editor showing
   // the pre-sort order even though the sorted version was already saved.
-  private _flushSorted(note: Note): void {
+  private _flushSorted(note: Note, spellcheck: boolean = this._spellcheckOn): void {
     clearTimeout(this._saveTimeout);
     const content = sortTaskListsHtml(this._tiptap?.getHTML() ?? note.content);
     const title = this._titleInput?.value ?? note.title;
     this._displayContent = content;
     if (content === note.content && title === note.title) return;
     this.dispatchEvent(new CustomEvent('note-save', {
-      detail: { note_id: note.note_id, title, content, color: note.color, pinned: note.pinned },
+      detail: { note_id: note.note_id, title, content, color: note.color, pinned: note.pinned, spellcheck },
       bubbles: true,
       composed: true,
     }));
+  }
+
+  // The caret moved or check results arrived. Keeps the strip as is while the caret stays
+  // on the same word (no flicker) and drops suggestions that come back for a word the
+  // caret has since left.
+  private _onSpellcheckState = async (): Promise<void> => {
+    this._blockLang = this._tiptap?.blockLanguage() ?? null;
+    const hit = this._tiptap?.wordAtCaret();
+    if (!hit) {
+      this._spellKey = '';
+      this._spellWord = null;
+      this._spellSuggestions = [];
+      return;
+    }
+    const key = `${hit.lang}:${hit.word}`;
+    if (key === this._spellKey) return;
+    this._spellKey = key;
+    // Drop the previous word now so the strip never offers fixes for a word the caret left.
+    this._spellWord = null;
+    this._spellSuggestions = [];
+    let suggestions: string[] = [];
+    try {
+      suggestions = (await this._tiptap?.suggest(hit.word, hit.lang)) ?? [];
+    } catch { /* show the strip without suggestions */ }
+    if (this._spellKey !== key) return;
+    const now = this._tiptap?.wordAtCaret();
+    if (!now || `${now.lang}:${now.word}` !== key) return;
+    this._spellWord = hit.word;
+    this._spellSuggestions = suggestions;
+  };
+
+  // The word the strip refers to, only if the caret is still on it.
+  private _currentSpellHit(): { word: string; from: number; to: number; lang: string } | null {
+    const hit = this._tiptap?.wordAtCaret();
+    return hit && hit.word === this._spellWord ? hit : null;
+  }
+
+  private _onSpellSuggestion(e: CustomEvent<{ suggestion: string }>): void {
+    const hit = this._currentSpellHit();
+    if (hit) this._tiptap?.replaceRange(hit.from, hit.to, e.detail.suggestion);
+  }
+
+  private _onSpellAddDictionary(): void {
+    const hit = this._currentSpellHit();
+    if (hit) this.dispatchEvent(new CustomEvent('spell-add-dictionary-word', { detail: { lang: hit.lang, word: hit.word }, bubbles: true, composed: true }));
+  }
+
+  private _onSpellIgnore(): void {
+    const hit = this._currentSpellHit();
+    if (hit) this.dispatchEvent(new CustomEvent('spell-add-ignored-word', { detail: { word: hit.word }, bubbles: true, composed: true }));
   }
 
   private _onToolbarAction(e: CustomEvent<{ action: ToolbarAction; payload?: { href?: string } }>): void {
@@ -230,6 +305,56 @@ export class HomeAssistantNotesEditor extends LitElement {
     if (!this.note) return;
     clearTimeout(this._saveTimeout);
     this._save({ pinned: !this.note.pinned });
+  }
+
+  private get _spellcheckOn(): boolean {
+    return this._spellcheckOverride ?? this.note?.spellcheck !== false;
+  }
+
+  private _onLanguageSelect(e: CustomEvent<{ mode: 'other' | 'auto' }>): void {
+    if (e.detail.mode === 'auto') {
+      this._tiptap?.setBlockLanguage(null);
+      return;
+    }
+    const other = this._otherLanguage();
+    if (other) this._tiptap?.setBlockLanguage(other.code);
+  }
+
+  // Languages the chip can name: the editor's loaded pair once it has one, otherwise the
+  // ready languages of the config (so the chip renders before the editor reports anything).
+  private _chipLanguages(): Array<{ code: string; name: string }> {
+    const pair = this._tiptap?.spellcheckLanguages ?? [];
+    if (pair.length) return pair;
+    return (this.spellcheckConfig?.languages ?? []).filter((l) => l.status === 'ready').map((l) => ({ code: l.code, name: l.name }));
+  }
+
+  private _otherLanguage(): { code: string; name: string } | undefined {
+    const current = this._blockLang?.code;
+    return this._chipLanguages().find((l) => l.code !== current);
+  }
+
+  private _onSpellcheckToggle(): void {
+    if (!this.note) return;
+    const next = !this._spellcheckOn;
+    this._spellcheckOverride = next;
+    clearTimeout(this._saveTimeout);
+    this._save({ spellcheck: next });
+  }
+
+  // Chip props for the toolbar. Without a spellcheck config (or when spellcheck is on but
+  // the block's language isn't known yet) the name stays empty and the chip hidden.
+  private _chipProps(): { languageName: string; otherLanguageName: string; languageManual: boolean } {
+    const none = { languageName: '', otherLanguageName: '', languageManual: false };
+    if (!this.spellcheckConfig?.languages.length) return none;
+    if (!this._spellcheckOn) return { ...none, languageName: 'Off' };
+    const languages = this._chipLanguages();
+    const current = languages.find((l) => l.code === this._blockLang?.code);
+    if (!current) return none;
+    return {
+      languageName: current.name,
+      otherLanguageName: languages.find((l) => l.code !== current.code)?.name ?? '',
+      languageManual: this._blockLang?.manual ?? false,
+    };
   }
 
   private _onLinkOpenRequested(e: Event): void {
@@ -253,6 +378,8 @@ export class HomeAssistantNotesEditor extends LitElement {
     if (!this.note) {
       return html`<div class="empty">Select a note or create one</div>`;
     }
+    const spellWord = this._spellcheckOn ? this._spellWord : null;
+    const chip = this._chipProps();
     return html`
       <div class="header">
         <ha-icon-button class="back-btn" .path=${mdiArrowLeft} @click=${() => {
@@ -277,12 +404,30 @@ export class HomeAssistantNotesEditor extends LitElement {
         ></textarea>
         <home-assistant-notes-tiptap-editor
           .content=${this._displayContent}
+          .lang=${this.language ?? ''}
+          .spellcheck=${this._spellcheckOn}
+          .spellcheckConfig=${this.spellcheckConfig}
           @content-changed=${() => this._scheduleSave()}
+          @spellcheck-state=${this._onSpellcheckState}
         ></home-assistant-notes-tiptap-editor>
       </div>
+      <home-assistant-notes-spell-strip
+        ?hidden=${!spellWord}
+        .word=${spellWord}
+        .suggestions=${this._spellSuggestions}
+        @spell-suggestion=${this._onSpellSuggestion}
+        @spell-add-dictionary=${this._onSpellAddDictionary}
+        @spell-ignore=${this._onSpellIgnore}
+      ></home-assistant-notes-spell-strip>
       <home-assistant-notes-toolbar
         .pinned=${this.note.pinned}
         .color=${this.note.color}
+        .languageName=${chip.languageName}
+        .otherLanguageName=${chip.otherLanguageName}
+        .languageManual=${chip.languageManual}
+        .spellcheckOn=${this._spellcheckOn}
+        @language-select=${this._onLanguageSelect}
+        @spellcheck-toggle=${this._onSpellcheckToggle}
         @toolbar-action=${this._onToolbarAction}
         @color-select=${this._onColorSelect}
         @pin-toggle=${this._onPinToggle}

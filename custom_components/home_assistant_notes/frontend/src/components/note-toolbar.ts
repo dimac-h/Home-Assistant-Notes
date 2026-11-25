@@ -39,6 +39,12 @@ export class HomeAssistantNotesToolbar extends LitElement {
   @property({ type: Boolean }) pinned = false;
   @property({ type: String }) color = '';
   @property({ type: String }) linkHref = '';
+  // Language chip: an empty languageName hides it; an empty otherLanguageName means
+  // there is no second loaded language to switch to.
+  @property({ type: String }) languageName = '';
+  @property({ type: String }) otherLanguageName = '';
+  @property({ type: Boolean }) languageManual = false;
+  @property({ type: Boolean }) spellcheckOn = true;
 
   @state() private _openGroup: string | null = null;
   @state() private _linkOpen = false;
@@ -59,6 +65,34 @@ export class HomeAssistantNotesToolbar extends LitElement {
   private _selectColor(c: string): void {
     this.dispatchEvent(new CustomEvent('color-select', { detail: { color: c }, bubbles: true, composed: true }));
     this._closeAll();
+  }
+
+  private _selectLanguage(mode: 'other' | 'auto'): void {
+    this.dispatchEvent(new CustomEvent('language-select', { detail: { mode }, bubbles: true, composed: true }));
+    this._closeAll();
+  }
+
+  private _toggleSpellcheck(): void {
+    this.dispatchEvent(new CustomEvent('spellcheck-toggle', { bubbles: true, composed: true }));
+    this._closeAll();
+  }
+
+  private _renderLanguageChip() {
+    if (!this.languageName) return '';
+    return html`
+      <div class="group language ${this._openGroup === 'language' ? 'open' : ''}">
+        <ha-button size="s" appearance="plain" variant="neutral" @click=${() => this._toggleGroup('language')} @mousedown=${(e: MouseEvent) => e.preventDefault()}>${this.spellcheckOn ? this.languageName : 'Off'}<span class="caret"> ▾</span></ha-button>
+        <div class="dropdown">
+          ${this.spellcheckOn ? html`
+            ${this.otherLanguageName ? html`<button class="item" @click=${() => this._selectLanguage('other')}>${this.otherLanguageName}</button>` : ''}
+            ${this.languageManual ? html`<button class="item" @click=${() => this._selectLanguage('auto')}>Auto-detect</button>` : ''}
+            <button class="item" @click=${() => this._toggleSpellcheck()}>Don't check</button>
+          ` : html`
+            <button class="item" @click=${() => this._toggleSpellcheck()}>Check spelling</button>
+          `}
+        </div>
+      </div>
+    `;
   }
 
   private _togglePin(): void {
@@ -89,6 +123,7 @@ export class HomeAssistantNotesToolbar extends LitElement {
 
   render() {
     return html`
+      ${this._renderLanguageChip()}
       <div class="group ${this._openGroup === 'heading' ? 'open' : ''}">
         <ha-button size="s" appearance="plain" variant="neutral" @click=${() => this._toggleGroup('heading')} @mousedown=${(e: MouseEvent) => e.preventDefault()}>H<span class="caret"> ▾</span></ha-button>
         <div class="dropdown">
