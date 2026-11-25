@@ -156,3 +156,81 @@ describe('note editor spell strip', () => {
     expect(t.labels()).toEqual(['Add to dictionary', 'Ignore']);
   });
 });
+
+describe('note editor language chip', () => {
+  const CONFIG: any = { languages: [{ code: 'en', name: 'English' }, { code: 'nl', name: 'Nederlands' }], dictionary: {}, ignored: [] };
+
+  async function mountChip(note = NOTE, config: any = CONFIG) {
+    const t = await mount(note);
+    t.tiptap.blockLanguage = vi.fn(() => ({ code: 'en', manual: false }));
+    t.tiptap.setBlockLanguage = vi.fn();
+    Object.defineProperty(t.tiptap, 'spellcheckLanguages', { configurable: true, get: () => (config ? CONFIG.languages : []) });
+    t.el.spellcheckConfig = config;
+    await t.el.updateComplete;
+    const toolbar = () => t.el.shadowRoot!.querySelector('home-assistant-notes-toolbar') as any;
+    const saves: any[] = [];
+    t.el.addEventListener('note-save', (e) => saves.push((e as CustomEvent).detail));
+    return { ...t, toolbar, saves };
+  }
+
+  it('passes the block language, the other language and the manual flag to the toolbar', async () => {
+    const t = await mountChip();
+    await t.fire();
+    expect(t.toolbar().languageName).toBe('English');
+    expect(t.toolbar().otherLanguageName).toBe('Nederlands');
+    expect(t.toolbar().languageManual).toBe(false);
+    expect(t.toolbar().spellcheckOn).toBe(true);
+    t.tiptap.blockLanguage = vi.fn(() => ({ code: 'nl', manual: true }));
+    await t.fire();
+    expect(t.toolbar().languageName).toBe('Nederlands');
+    expect(t.toolbar().otherLanguageName).toBe('English');
+    expect(t.toolbar().languageManual).toBe(true);
+  });
+
+  it('hides the chip while the block language is unknown, and without a config', async () => {
+    const t = await mountChip();
+    t.tiptap.blockLanguage = vi.fn(() => null);
+    await t.fire();
+    expect(t.toolbar().languageName).toBe('');
+    const none = await mountChip(NOTE, { ...CONFIG, languages: [] });
+    await none.fire();
+    expect(none.toolbar().languageName).toBe('');
+  });
+
+  it('shows the chip as Off when the note has spellcheck off', async () => {
+    const t = await mountChip({ ...NOTE, spellcheck: false });
+    expect(t.toolbar().languageName).toBe('Off');
+    expect(t.toolbar().spellcheckOn).toBe(false);
+  });
+
+  it('applies language-select through setBlockLanguage', async () => {
+    const t = await mountChip();
+    await t.fire();
+    t.toolbar().dispatchEvent(new CustomEvent('language-select', { detail: { mode: 'other' }, bubbles: true, composed: true }));
+    expect(t.tiptap.setBlockLanguage).toHaveBeenLastCalledWith('nl');
+    t.toolbar().dispatchEvent(new CustomEvent('language-select', { detail: { mode: 'auto' }, bubbles: true, composed: true }));
+    expect(t.tiptap.setBlockLanguage).toHaveBeenLastCalledWith(null);
+  });
+
+  it('saves the flipped spellcheck value and reacts immediately', async () => {
+    const t = await mountChip();
+    await t.fire();
+    t.toolbar().dispatchEvent(new CustomEvent('spellcheck-toggle', { bubbles: true, composed: true }));
+    await t.el.updateComplete;
+    expect(t.saves.at(-1)).toMatchObject({ note_id: 'n1', spellcheck: false });
+    expect(t.toolbar().languageName).toBe('Off');
+    // the saved note arrives, then it is toggled back on
+    t.el.note = { ...NOTE, spellcheck: false };
+    await t.el.updateComplete;
+    t.toolbar().dispatchEvent(new CustomEvent('spellcheck-toggle', { bubbles: true, composed: true }));
+    await t.el.updateComplete;
+    expect(t.saves.at(-1)).toMatchObject({ spellcheck: true });
+    expect(t.toolbar().spellcheckOn).toBe(true);
+  });
+
+  it('includes spellcheck in ordinary saves', async () => {
+    const t = await mountChip();
+    t.toolbar().dispatchEvent(new CustomEvent('pin-toggle', { bubbles: true, composed: true }));
+    expect(t.saves.at(-1)).toMatchObject({ pinned: true, spellcheck: true });
+  });
+});

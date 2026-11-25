@@ -100,3 +100,17 @@ describe('panel spell strip events', () => {
     warn.mockRestore();
   });
 });
+
+describe('panel note-save', () => {
+  it('passes spellcheck through to update_note', async () => {
+    const h = makeHass();
+    const panel = document.createElement('home-assistant-notes-panel') as any;
+    panel.hass = h.hass;
+    document.body.appendChild(panel);
+    await panel.updateComplete;
+    const editor = panel.shadowRoot.querySelector('home-assistant-notes-editor');
+    const detail = { note_id: 'n1', title: 'T', content: '<p>x</p>', color: '#FFEB3B', pinned: false, spellcheck: false };
+    editor.dispatchEvent(new CustomEvent('note-save', { detail, bubbles: true, composed: true }));
+    expect(h.hass.callService).toHaveBeenCalledWith('home_assistant_notes', 'update_note', detail);
+  });
+});
