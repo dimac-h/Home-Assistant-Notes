@@ -18,6 +18,8 @@ from .languages import SUPPORTED_LANGUAGES, dictionary_url
 
 _LOGGER = logging.getLogger(__name__)
 
+# Written next to the dictionary files; holds the pinned version they were downloaded for.
+VERSION_MARKER = "VERSION"
 # Seconds to wait before each retry of failed downloads (HA often boots before the network).
 RETRY_DELAYS = (30, 120, 600)
 
@@ -44,9 +46,12 @@ def _validate(filename: str, body: bytes) -> None:
             raise DictionaryError(f"{filename} does not start with a word count") from err
 
 
-def _files_valid(directory: str) -> bool:
-    """Return True if both dictionary files exist in the directory and look valid."""
+def _files_valid(directory: str, version: str) -> bool:
+    """Return True if both files look valid and were installed for the pinned version."""
     try:
+        with open(os.path.join(directory, VERSION_MARKER), encoding="utf-8") as marker:
+            if marker.read().strip() != version:
+                return False
         for filename in DICTIONARY_FILES:
             with open(os.path.join(directory, filename), "rb") as file:
                 body = file.read(DICTIONARY_MAX_BYTES + 1)
@@ -58,7 +63,7 @@ def _files_valid(directory: str) -> bool:
     return True
 
 
-def _install(base: str, code: str, bodies: dict[str, bytes]) -> None:
+def _install(base: str, code: str, version: str, bodies: dict[str, bytes]) -> None:
     """Write the files to a temp dir next to the target, then move it into place."""
     target = os.path.join(base, code)
     temp = os.path.join(base, f".{code}.tmp")
@@ -68,6 +73,8 @@ def _install(base: str, code: str, bodies: dict[str, bytes]) -> None:
         for filename, body in bodies.items():
             with open(os.path.join(temp, filename), "wb") as file:
                 file.write(body)
+        with open(os.path.join(temp, VERSION_MARKER), "w", encoding="utf-8") as marker:
+            marker.write(version)
         shutil.rmtree(target, ignore_errors=True)
         os.replace(temp, target)
     finally:
@@ -76,7 +83,11 @@ def _install(base: str, code: str, bodies: dict[str, bytes]) -> None:
 
 def _scan(base: str) -> set[str]:
     """Return the codes of the languages whose files are already on disk and valid."""
-    return {code for code in SUPPORTED_LANGUAGES if _files_valid(os.path.join(base, code))}
+    return {
+        code
+        for code, language in SUPPORTED_LANGUAGES.items()
+        if _files_valid(os.path.join(base, code), language.version)
+    }
 
 
 class DictionaryManager:
@@ -117,7 +128,8 @@ class DictionaryManager:
         return self._status.get(code, "missing")
 
     def url_for(self, code: str, filename: str) -> str:
-        return f"{DICTIONARIES_URL_PATH}/{code}/{filename}"
+        version = SUPPORTED_LANGUAGES[code].version
+        return f"{DICTIONARIES_URL_PATH}/{code}/{filename}?v={version}"
 
     async def async_ensure(self, codes: list[str]) -> None:
         """Download every listed language that is not ready yet, one after another."""
@@ -177,4 +189,4 @@ class DictionaryManager:
                         raise DictionaryError(f"{url} is larger than the size limit")
             _validate(filename, bytes(body))
             bodies[filename] = bytes(body)
-        await self._hass.async_add_executor_job(_install, self.base_path, code, bodies)
+        await self._hass.async_add_executor_job(_install, self.base_path, code, language.version, bodies)

@@ -46,8 +46,10 @@ async def test_download_creates_files(hass: HomeAssistant, aioclient_mock) -> No
     assert manager.status("nl") == "missing"
     await manager.async_ensure(["nl"])
     assert manager.status("nl") == "ready"
-    assert await hass.async_add_executor_job(_files, manager, "nl") == ["index.aff", "index.dic"]
-    assert manager.url_for("nl", "index.dic") == "/home_assistant_notes_dictionaries/nl/index.dic"
+    assert await hass.async_add_executor_job(_files, manager, "nl") == ["VERSION", "index.aff", "index.dic"]
+    assert manager.url_for("nl", "index.dic") == (
+        f"/home_assistant_notes_dictionaries/nl/index.dic?v={SUPPORTED_LANGUAGES['nl'].version}"
+    )
 
 
 async def test_second_ensure_makes_no_requests(hass: HomeAssistant, aioclient_mock) -> None:
@@ -257,3 +259,32 @@ async def test_retry_only_failed_languages(hass: HomeAssistant, aioclient_mock) 
         await manager.async_ensure_with_retry(["nl", "tr"], delays=(1,))
     tr_url = dictionary_url(SUPPORTED_LANGUAGES["tr"], "index.aff")
     assert sum(1 for call in aioclient_mock.mock_calls if str(call[1]) == tr_url) == 1
+
+
+async def test_version_bump_marks_installed_dictionary_missing(hass: HomeAssistant, aioclient_mock) -> None:
+    from dataclasses import replace
+    from unittest.mock import patch
+
+    _mock(aioclient_mock, "nl")
+    await (await _manager(hass)).async_ensure(["nl"])
+    bumped = {**SUPPORTED_LANGUAGES, "nl": replace(SUPPORTED_LANGUAGES["nl"], version="9.9.9")}
+    with patch("custom_components.home_assistant_notes.dictionaries.SUPPORTED_LANGUAGES", bumped):
+        fresh = await _manager(hass)
+        assert fresh.status("nl") == "missing"
+        assert await hass.async_add_executor_job(_files, fresh, "nl") == ["VERSION", "index.aff", "index.dic"]
+        aioclient_mock.clear_requests()
+        _mock_url = dictionary_url(bumped["nl"], "index.aff")
+        assert "9.9.9" in _mock_url
+        aioclient_mock.get(_mock_url, content=AFF)
+        aioclient_mock.get(dictionary_url(bumped["nl"], "index.dic"), content=DIC)
+        await fresh.async_ensure(["nl"])
+        assert fresh.status("nl") == "ready"
+        assert (await _manager(hass)).status("nl") == "ready"
+
+
+async def test_files_without_marker_are_missing(hass: HomeAssistant, aioclient_mock) -> None:
+    _mock(aioclient_mock, "nl")
+    manager = await _manager(hass)
+    await manager.async_ensure(["nl"])
+    await hass.async_add_executor_job(os.remove, os.path.join(manager.base_path, "nl", "VERSION"))
+    assert (await _manager(hass)).status("nl") == "missing"

@@ -18,6 +18,7 @@ from custom_components.home_assistant_notes.__init__ import (
     UPDATE_NOTE_SCHEMA,
 )
 from custom_components.home_assistant_notes.const import CARD_MODULE_URL, DOMAIN, EVENT_SPELLCHECK_CHANGED
+from custom_components.home_assistant_notes.languages import SUPPORTED_LANGUAGES
 from custom_components.home_assistant_notes.storage import NotesStorage
 from custom_components.home_assistant_notes.words import WordsStorage
 
@@ -317,13 +318,13 @@ async def test_spellcheck_config_returns_pair_statuses_and_lists(
         "languages": [
             {
                 "code": "nl", "name": "Nederlands", "tinyld": "nl", "status": "ready",
-                "aff_url": "/home_assistant_notes_dictionaries/nl/index.aff",
-                "dic_url": "/home_assistant_notes_dictionaries/nl/index.dic",
+                "aff_url": "/home_assistant_notes_dictionaries/nl/index.aff?v=" + SUPPORTED_LANGUAGES["nl"].version,
+                "dic_url": "/home_assistant_notes_dictionaries/nl/index.dic?v=" + SUPPORTED_LANGUAGES["nl"].version,
             },
             {
                 "code": "en", "name": "English", "tinyld": "en", "status": "missing",
-                "aff_url": "/home_assistant_notes_dictionaries/en/index.aff",
-                "dic_url": "/home_assistant_notes_dictionaries/en/index.dic",
+                "aff_url": "/home_assistant_notes_dictionaries/en/index.aff?v=" + SUPPORTED_LANGUAGES["en"].version,
+                "dic_url": "/home_assistant_notes_dictionaries/en/index.dic?v=" + SUPPORTED_LANGUAGES["en"].version,
             },
         ],
         **runtime.words.get_lists(),
