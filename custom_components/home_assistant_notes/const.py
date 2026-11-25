@@ -55,3 +55,8 @@ SERVICE_REMOVE_IGNORED_WORD = "remove_ignored_word"
 ATTR_LANG = "lang"
 ATTR_WORD = "word"
 EVENT_WORDS_CHANGED = f"{DOMAIN}_words_changed"
+
+# Downloaded Hunspell dictionaries, served as static files
+DICTIONARIES_URL_PATH = "/home_assistant_notes_dictionaries"
+DICTIONARY_FILES = ("index.aff", "index.dic")
+DICTIONARY_MAX_BYTES = 50 * 1024 * 1024

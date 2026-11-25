@@ -41,11 +41,13 @@ from .const import (
     SERVICE_ADD_IGNORED_WORD,
     SERVICE_REMOVE_IGNORED_WORD,
     DEFAULT_COLOR,
+    DICTIONARIES_URL_PATH,
     PANEL_TITLE,
     PANEL_ICON,
     PANEL_URL,
     PANEL_COMPONENT_NAME,
 )
+from .dictionaries import DictionaryManager
 from .languages import SUPPORTED_LANGUAGES
 from .storage import NotesStorage
 from .words import WordsStorage
@@ -60,6 +62,7 @@ class RuntimeData:
 
     notes: NotesStorage
     words: WordsStorage
+    dictionaries: DictionaryManager
 
 
 type NotesConfigEntry = ConfigEntry[RuntimeData]
@@ -222,7 +225,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: NotesConfigEntry) -> boo
     await notes_storage.async_load()
     words_storage = WordsStorage(hass)
     await words_storage.async_load()
-    entry.runtime_data = RuntimeData(notes=notes_storage, words=words_storage)
+    dictionaries = DictionaryManager(hass)
+    await dictionaries.async_load()
+    entry.runtime_data = RuntimeData(
+        notes=notes_storage, words=words_storage, dictionaries=dictionaries
+    )
 
     # Register frontend panel
     if "/home_assistant_notes_panel" not in _REGISTERED_STATIC_PATHS:
@@ -234,6 +241,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: NotesConfigEntry) -> boo
             )
         ])
         _REGISTERED_STATIC_PATHS.add("/home_assistant_notes_panel")
+
+    # Downloaded spellcheck dictionaries (the directory is created by async_load)
+    if DICTIONARIES_URL_PATH not in _REGISTERED_STATIC_PATHS:
+        await hass.http.async_register_static_paths([
+            StaticPathConfig(
+                url_path=DICTIONARIES_URL_PATH,
+                path=dictionaries.base_path,
+                cache_headers=True,
+            )
+        ])
+        _REGISTERED_STATIC_PATHS.add(DICTIONARIES_URL_PATH)
 
     # Load the Lovelace card on every dashboard so it shows up in the card picker
     # without users having to add a dashboard resource by hand
