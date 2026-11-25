@@ -18,6 +18,7 @@
 - Ten note colors with pin support
 - Real-time search
 - Dashboard card to display notes on any view with filter and configuration options
+- Spellcheck that works in two languages at once, picking the right one for every paragraph
 - Auto-save
 - Dark mode
 
@@ -87,28 +88,36 @@ response_variable: result   # result.notes is a list of note objects
 
 ## Spellcheck
 
-The note body is spellchecked while you type. Misspelled words get a wavy underline in the error color of your theme.
+Notes are spell-checked while you type. A misspelled word gets a wavy underline, in the error color of your theme.
 
-- **Languages per paragraph.** The language is detected for each paragraph or list item, so a note can mix two languages. Short or unclear lines take the language of the line before them.
-- **Suggestions.** When the caret is in a misspelled word, a strip appears above the toolbar with suggestions, **Add to dictionary** and **Ignore**. Tap a suggestion to replace the word.
-- **Language chip.** The first item in the toolbar shows the language of the current paragraph. Use it to switch that paragraph between the two configured languages, or choose **Don't check** to turn spellchecking off for the whole note. A chip that says "Off" has a **Check spelling** entry to turn it back on.
-- **Title.** The title field is not checked by this feature. It keeps the browser's own spellcheck.
+It is made for people who write in more than one language. Home Assistant Notes works out the language of every paragraph and list item by itself, so one note can have Dutch and English (or Turkish and English, or any other pair) side by side. If a line is too short to tell, it simply uses the language of the line above it.
 
-### Choosing the two languages
+**Fixing a word.** Put your cursor in an underlined word and a small bar appears above the toolbar with suggestions. Tap one to replace the word. The bar has two more buttons:
 
-Go to **Settings → Devices & services → Home Assistant Notes → Configure** and pick two languages. By default these are the language of your Home Assistant plus English. If your Home Assistant language is English or has no dictionary, the default pair is English plus Nederlands. You don't need to reload anything: the panel updates on its own once the new dictionary has finished downloading.
+- **Add to dictionary**: the word counts as correct from now on in that language, and can show up as a suggestion for other words.
+- **Ignore**: the word is never underlined again, but it is not used as a suggestion. Handy for names.
 
-The dictionaries are downloaded once by Home Assistant itself from the jsdelivr npm CDN and then served from your own instance. Downloads run in the background and, if one fails (for example because the network is not up yet after a restart), it is retried automatically a few times. A dictionary is downloaded again when this integration updates to a newer dictionary version. No note text ever leaves your device. Only the dictionary files are downloaded.
+Both lists are kept in Home Assistant, so every device you use shares them.
 
-Your personal dictionary (per language) and your ignore list are stored in Home Assistant, so they are shared across all your devices.
+**The language button.** The first button in the toolbar shows the language of the paragraph you are in. If it guessed wrong, tap it and pick your other language. Pick **Auto-detect** to let it guess again. **Don't check** turns the spellchecker off for the whole note. The button then says "Off", and **Check spelling** turns it back on.
 
-Supported languages (17): English, Nederlands, Türkçe, Français, Deutsch, Español, Português, Italiano, Ελληνικά, Svenska, Norsk bokmål, Magyar, Română, Русский, Polski, עברית, 한국어.
+The title of a note is not part of this: it keeps using your browser's own spellcheck.
+
+### Choosing your two languages
+
+Go to **Settings → Devices & services → Home Assistant Notes → Configure** and pick the two languages you write in. Out of the box you get the language of your Home Assistant plus English (or English plus Nederlands, if your Home Assistant language isn't available).
+
+Home Assistant then downloads the word lists in the background. Bigger languages can take a minute. When they are ready the underlines show up on their own: no restart, no reload. If a download fails, for example because the internet isn't up yet after a restart, it tries again a few times by itself.
+
+You can choose from 17 languages: English, Nederlands, Türkçe, Français, Deutsch, Español, Português, Italiano, Ελληνικά, Svenska, Norsk bokmål, Magyar, Română, Русский, Polski, עברית and 한국어.
+
+Your notes are never sent anywhere. The only thing that is downloaded is the word list itself, once, by your Home Assistant, from the public jsDelivr package host. After that everything happens on your own devices, and your Home Assistant serves the word lists itself.
 
 ### Dictionary licenses
 
-The dictionaries are the npm `dictionary-<code>` packages (Hunspell dictionaries). They are downloaded at runtime from the CDN. This integration does not bundle or redistribute them. Each one has its own license:
+The word lists are open-source dictionaries made by other projects (the `dictionary-xx` packages on npm). Home Assistant Notes does not include them: your Home Assistant downloads the ones you choose. Each has its own license:
 
-| Language | Package | License | Unpacked size |
+| Language | Package | License | Size |
 |---|---|---|---|
 | English | `dictionary-en@4.0.0` | MIT AND BSD | 0.6 MB |
 | Nederlands | `dictionary-nl@2.0.0` | BSD-3-Clause OR CC-BY-3.0 | 2.6 MB |
@@ -145,11 +154,15 @@ The dictionaries are the npm `dictionary-<code>` packages (Hunspell dictionaries
 
 **Home Assistant version required** 2026.11.0 or newer.
 
+**Does the spellcheck send my notes anywhere?** No. Only the word lists are downloaded (once, by Home Assistant). Your notes stay in your Home Assistant.
+
 **Can I use notes in automations?** Yes. The `create_note`, `update_note`, `delete_note`, and `get_notes` services are available in the Actions picker and in YAML.
 
 ## Troubleshooting
 
 **Panel not in sidebar** — disable and re-enable the integration in Settings → Devices & Services, then hard-refresh the browser.
+
+**No underlines while spellchecking?** — the word list for your language may still be downloading (it needs internet access once). Check the language button in the toolbar: if it says "Off", spellcheck is switched off for that note. You can also check your two languages under **Settings → Devices & services → Home Assistant Notes → Configure**.
 
 **Card is not loading** — check the browser console for errors. The card type is `custom:home-assistant-notes-card`.
 
