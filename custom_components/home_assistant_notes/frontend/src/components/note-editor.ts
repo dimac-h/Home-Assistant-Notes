@@ -4,7 +4,7 @@ import { mdiCheck, mdiArrowLeft } from '@mdi/js';
 import './note-toolbar';
 import './tiptap-editor';
 import type { HomeAssistantNotesTiptapEditor, ToolbarAction } from './tiptap-editor';
-import type { Note } from '../api';
+import type { Note, SpellcheckConfig } from '../api';
 
 // Sorts every checklist in the note's content: unchecked items on top,
 // checked items below, each group alphabetical. Applied wholesale when a
@@ -77,6 +77,7 @@ export class HomeAssistantNotesEditor extends LitElement {
   @property({ attribute: false }) note: Note | null = null;
   // HA's UI language; becomes the editor's default spellcheck language.
   @property({ attribute: false }) language?: string;
+  @property({ attribute: false }) spellcheckConfig: SpellcheckConfig | null = null;
 
   @state() private _pendingDelete = false;
   @state() private _justSaved = false;
@@ -280,6 +281,8 @@ export class HomeAssistantNotesEditor extends LitElement {
         <home-assistant-notes-tiptap-editor
           .content=${this._displayContent}
           .lang=${this.language ?? ''}
+          .spellcheck=${this.note.spellcheck !== false}
+          .spellcheckConfig=${this.spellcheckConfig}
           @content-changed=${() => this._scheduleSave()}
         ></home-assistant-notes-tiptap-editor>
       </div>

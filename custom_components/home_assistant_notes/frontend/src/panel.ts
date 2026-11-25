@@ -2,8 +2,8 @@ import { LitElement, html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import './components/note-list';
 import './components/note-editor';
-import { getNotes, createNote, updateNote, deleteNote, subscribeNoteEvents } from './api';
-import type { Note } from './api';
+import { getNotes, createNote, updateNote, deleteNote, subscribeNoteEvents, getSpellcheckConfig, subscribeSpellcheckEvents } from './api';
+import type { Note, SpellcheckConfig } from './api';
 import { DEFAULT_NOTE_COLOR } from './colors';
 import type { HomeAssistant } from './ha-types';
 import { forwardDebugEventsToHa } from './debug-log';
@@ -38,7 +38,11 @@ export class HomeAssistantNotesPanel extends LitElement {
   @state() private _searchTerm = '';
   @state() private _view: 'list' | 'editor' = 'list';
 
+  @state() private _spellcheckConfig: SpellcheckConfig | null = null;
+
   private _unsubscribe?: () => void;
+  private _unsubscribeSpellcheck?: () => void;
+  private _spellcheckTimer?: ReturnType<typeof setTimeout>;
   private _creatingNote = false;
   private _pushedEditorState = false;
 
@@ -56,6 +60,9 @@ export class HomeAssistantNotesPanel extends LitElement {
     super.disconnectedCallback();
     this._unsubscribe?.();
     this._unsubscribe = undefined;
+    this._unsubscribeSpellcheck?.();
+    this._unsubscribeSpellcheck = undefined;
+    clearTimeout(this._spellcheckTimer);
     window.removeEventListener('popstate', this._onPopState);
     window.removeEventListener('location-changed', this._openNoteFromUrl);
   }
@@ -116,6 +123,19 @@ export class HomeAssistantNotesPanel extends LitElement {
   private async _init(): Promise<void> {
     await this._loadNotes();
     this._unsubscribe = await subscribeNoteEvents(this.hass, () => this._loadNotes());
+    await this._loadSpellcheckConfig();
+    // Language pair or dictionary changes and word-list edits arrive in bursts
+    // (one event per downloaded dictionary), so re-fetch once after they settle.
+    const unsubscribe = await subscribeSpellcheckEvents(this.hass, () => {
+      clearTimeout(this._spellcheckTimer);
+      this._spellcheckTimer = setTimeout(() => this._loadSpellcheckConfig(), 300);
+    });
+    if (this.isConnected) this._unsubscribeSpellcheck = unsubscribe;
+    else unsubscribe();
+  }
+
+  private async _loadSpellcheckConfig(): Promise<void> {
+    if (this.hass) this._spellcheckConfig = await getSpellcheckConfig(this.hass);
   }
 
   private async _loadNotes(): Promise<void> {
@@ -182,6 +202,7 @@ export class HomeAssistantNotesPanel extends LitElement {
           <home-assistant-notes-editor
             .note=${this._selectedNote}
             .language=${this.hass?.language}
+            .spellcheckConfig=${this._spellcheckConfig}
             @editor-back=${this._onEditorBack}
             @note-save=${this._onNoteSave}
             @note-delete=${this._onNoteDelete}

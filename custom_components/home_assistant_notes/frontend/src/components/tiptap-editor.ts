@@ -4,6 +4,10 @@ import { NodeSelection, TextSelection } from '@tiptap/pm/state';
 import { loadTiptapExtensions, backspaceEmptyParagraphAfterList } from '../tiptap-extensions';
 import { scrollableAncestors } from '../scroll-utils';
 import { attachCaretLogger, isDebugEnabled } from '../debug-log';
+import { createSpellcheckExtension, SPELLCHECK_STATE_EVENT } from '../spellcheck/extension';
+import { SpellcheckController, defaultClientFactory } from '../spellcheck/controller';
+import type { SpellWorkerClientLike } from '../spellcheck/controller';
+import type { SpellcheckConfig } from '../api';
 
 export type ToolbarAction =
   | 'paragraph' | 'h1' | 'h2' | 'h3'
@@ -98,12 +102,23 @@ export class HomeAssistantNotesTiptapEditor extends LitElement {
   // tags a selection with a language. Falls back to the page, then browser, language.
   @property() lang = '';
 
+  // Whether this note is spellchecked at all (the note's `spellcheck` flag).
+  @property({ type: Boolean }) spellcheck = true;
+  @property({ attribute: false }) spellcheckConfig: SpellcheckConfig | null = null;
+  // Test seam: how the worker client is created.
+  spellcheckClientFactory: () => SpellWorkerClientLike = defaultClientFactory;
+
   @query('#mount') private _mount?: HTMLDivElement;
 
   private _editor: any = null;
   private _fallback = false;
   private _lastEmitted = '';
   private _stopCaretLogger?: () => void;
+  private _spell = new SpellcheckController({
+    createClient: () => this.spellcheckClientFactory(),
+    getLang: () => this._language(),
+    onChange: () => this._onSpellChange(),
+  });
 
   async connectedCallback(): Promise<void> {
     super.connectedCallback();
@@ -114,16 +129,38 @@ export class HomeAssistantNotesTiptapEditor extends LitElement {
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this._stopCaretLogger?.();
+    this._spell.destroy();
     this._editor?.destroy();
     this._editor = null;
   }
 
+  private _language(): string {
+    return this.lang || document.documentElement.lang || navigator.language || 'en';
+  }
+
+  // The browser's own spellcheck is switched off when our checker draws the
+  // squiggles (it would double them) or when the note opted out; otherwise it
+  // keeps its default.
   private _editorAttributes(): Record<string, string> {
-    return { spellcheck: 'true', lang: this.lang || document.documentElement.lang || navigator.language || 'en' };
+    const attributes: Record<string, string> = { lang: this._language() };
+    if (this._spell.active || !this.spellcheck) attributes.spellcheck = 'false';
+    return attributes;
+  }
+
+  private _onSpellChange(): void {
+    const editor = this._editor;
+    if (!editor || editor.isDestroyed) return;
+    editor.view.setProps({ attributes: this._editorAttributes() });
+    editor.storage.spellcheck.recheck();
+    this.dispatchEvent(new CustomEvent(SPELLCHECK_STATE_EVENT, { bubbles: true, composed: true }));
   }
 
   updated(changed: Map<string, unknown>): void {
     if (changed.has('lang') && this._editor) this._editor.view.setProps({ attributes: this._editorAttributes() });
+    if ((changed.has('spellcheck') || changed.has('spellcheckConfig')) && this._editor) {
+      this._spell.update(this.spellcheckConfig, this.spellcheck);
+      this._editor.view.setProps({ attributes: this._editorAttributes() });
+    }
     if (changed.has('content') && this._editor && this.content !== this._lastEmitted) {
       this._lastEmitted = this.content;
       this._editor.commands.setContent(this.content, { emitUpdate: false });
@@ -151,10 +188,16 @@ export class HomeAssistantNotesTiptapEditor extends LitElement {
       this.requestUpdate();
       return;
     }
-    const { Editor, extensions } = loaded;
+    const { Editor, Extension, extensions } = loaded;
+    const spellcheckExtension = createSpellcheckExtension(Extension, {
+      client: this._spell.proxy,
+      pair: this._spell.pair,
+      fallback: this._language(),
+      enabled: () => this._spell.active,
+    });
     this._editor = new Editor({
       element: this._mount,
-      extensions,
+      extensions: [...extensions, spellcheckExtension],
       content: this.content,
       autofocus: 'end',
       editorProps: {
@@ -180,6 +223,8 @@ export class HomeAssistantNotesTiptapEditor extends LitElement {
       onUpdate: () => this._emitChanged(),
     });
     this._lastEmitted = this._editor.getHTML();
+    this._spell.update(this.spellcheckConfig, this.spellcheck);
+    this._editor.view.setProps({ attributes: this._editorAttributes() });
     if (isDebugEnabled()) this._stopCaretLogger = attachCaretLogger(this, this._editor);
     // Capture-phase listener on the mount, ahead of TaskItem's own 'change'
     // handler on the <input>: that handler calls editor.focus(), which with the
@@ -295,6 +340,37 @@ export class HomeAssistantNotesTiptapEditor extends LitElement {
     if (this._editor) return this._editor.getHTML();
     const textarea = this.renderRoot.querySelector('#fallback') as HTMLTextAreaElement | null;
     return textarea?.value ?? this.content;
+  }
+
+  setBlockLanguage(lang: string | null): void {
+    this._editor?.commands.setBlockLanguage(lang);
+  }
+
+  blockLanguage(): { code: string; manual: boolean } | null {
+    return this._editor?.storage.spellcheck?.blockLanguage() ?? null;
+  }
+
+  wordAtCaret(): { word: string; from: number; to: number; lang: string } | null {
+    return this._editor?.storage.spellcheck?.wordAtCaret() ?? null;
+  }
+
+  // Replaces a range without touching focus or scroll, like the checklist toggle.
+  replaceRange(from: number, to: number, text: string): void {
+    const view = this._editor?.view;
+    if (view) view.dispatch(view.state.tr.insertText(text, from, to));
+  }
+
+  suggest(word: string, lang: string): Promise<string[]> {
+    return this._spell.suggest(word, lang);
+  }
+
+  recheckSpelling(): void {
+    this._editor?.storage.spellcheck?.recheck();
+  }
+
+  get spellcheckLanguages(): Array<{ code: string; name: string }> {
+    const languages = this.spellcheckConfig?.languages ?? [];
+    return this._spell.pair.map((code) => ({ code, name: languages.find((l) => l.code === code)?.name ?? code }));
   }
 
   getLinkHref(): string {
